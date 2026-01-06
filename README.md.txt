@@ -12,3 +12,7 @@ this gap using AI-based behavioral analysis.
 ## IDS Design Approach
 AegisAI is designed as a Hybrid IDS to leverage the strengths of both
 signature-based detection and AI-based anomaly detection.
+
+## Dataset
+AegisAI initially uses the NSL-KDD dataset to train and evaluate AI-based
+intrusion detection models before moving to real-time traffic analysis.
