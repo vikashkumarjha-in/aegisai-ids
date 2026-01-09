@@ -25,3 +25,7 @@ before implementing AI-based intrusion detection models.
 The project implements initial data cleaning and preprocessing steps including
 missing value inspection, duplicate removal, and label encoding to prepare
 datasets for AI-based intrusion detection.
+
+## Feature Engineering
+The project performs feature-label separation and normalization to prepare
+datasets for machine learning-based intrusion detection models.
