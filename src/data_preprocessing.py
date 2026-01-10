@@ -53,3 +53,6 @@ if __name__ == "__main__":
 
         print("\nPreprocessing complete")
         print(df.head())
+
+df.to_csv("processed_data.csv", index=False)
+print("Processed data saved as processed_data.csv")

@@ -29,3 +29,8 @@ datasets for AI-based intrusion detection.
 ## Feature Engineering
 The project performs feature-label separation and normalization to prepare
 datasets for machine learning-based intrusion detection models.
+
+## Model Training
+A baseline machine learning model is trained using labeled intrusion data
+to classify normal and malicious network behavior.
+
