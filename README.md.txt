@@ -34,3 +34,7 @@ datasets for machine learning-based intrusion detection models.
 A baseline machine learning model is trained using labeled intrusion data
 to classify normal and malicious network behavior.
 
+## Model Evaluation
+The trained machine learning model is evaluated using standard
+classification metrics including accuracy, precision, recall,
+F1-score, and confusion matrix analysis to assess detection performance.
