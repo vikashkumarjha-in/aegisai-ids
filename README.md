@@ -38,3 +38,7 @@ to classify normal and malicious network behavior.
 The trained machine learning model is evaluated using standard
 classification metrics including accuracy, precision, recall,
 F1-score, and confusion matrix analysis to assess detection performance.
+
+## Alert Generation
+AegisAI converts model predictions into security alerts,
+distinguishing normal traffic from potential intrusions.
