@@ -42,3 +42,11 @@ F1-score, and confusion matrix analysis to assess detection performance.
 ## Alert Generation
 AegisAI converts model predictions into security alerts,
 distinguishing normal traffic from potential intrusions.
+
+## Model Training & Evaluation
+A baseline machine learning model using Logistic Regression has been implemented.
+The model is trained on preprocessed intrusion data and saved for reuse.
+Evaluation metrics such as accuracy and classification report validate
+correct pipeline execution.
+
+> Status: Training and evaluation pipeline completed successfully.
