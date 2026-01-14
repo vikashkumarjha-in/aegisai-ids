@@ -50,3 +50,7 @@ Evaluation metrics such as accuracy and classification report validate
 correct pipeline execution.
 
 > Status: Training and evaluation pipeline completed successfully.
+
+## Model Persistence
+The trained intrusion detection model is saved using joblib and reused
+during evaluation without retraining, enabling deployment readiness.
