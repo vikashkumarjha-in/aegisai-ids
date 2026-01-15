@@ -1,33 +1,28 @@
-import pandas as pd
 from sklearn.linear_model import LogisticRegression
+from feature_engineering import load_clean_data, split_features_labels, scale_features
 from model_utils import save_model
 
-DATA_PATH = "../data/processed_data.csv"
 
-def load_data():
-    print("Loading processed dataset...")
-    data = pd.read_csv(DATA_PATH)
+def train_model():
+    print("Loading dataset...")
+    df = load_clean_data()
 
-    if "label" not in data.columns:
-        raise ValueError("'label' column not found in dataset")
-
-    X = data.drop("label", axis=1)
-    y = data["label"]
+    X, y = split_features_labels(df)
 
     if y.nunique() < 2:
         raise ValueError("Dataset must contain at least two classes")
 
-    return X, y
+    print("Scaling features...")
+    X_scaled = scale_features(X)
 
-def train_model(X, y):
     print("Training Logistic Regression model...")
     model = LogisticRegression(max_iter=1000)
-    model.fit(X, y)
-    return model
+    model.fit(X_scaled, y)
 
-if __name__ == "__main__":
-    X, y = load_data()
-    model = train_model(X, y)
+    print("Model training completed")
     save_model(model)
 
-    print("Training completed successfully.")
+
+if __name__ == "__main__":
+    train_model()
+    print("Training completed successfully")

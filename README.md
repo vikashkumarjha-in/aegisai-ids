@@ -54,3 +54,15 @@ correct pipeline execution.
 ## Model Persistence
 The trained intrusion detection model is saved using joblib and reused
 during evaluation without retraining, enabling deployment readiness.
+
+## Day 12 – Feature Scaling & Training Stability
+
+On Day 12, feature engineering was enhanced by replacing manual normalization
+with industry-standard feature scaling using `StandardScaler`. The training
+pipeline was updated to ensure all numerical features are scaled before model
+training, improving stability and convergence of the Logistic Regression model.
+
+Key improvements:
+- Standardized feature scaling
+- Cleaner feature-label separation
+- Improved model training reliability

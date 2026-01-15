@@ -1,42 +1,36 @@
 import pandas as pd
-import numpy as np
 import os
+from sklearn.preprocessing import StandardScaler
 
 
 def load_clean_data():
     base_dir = os.path.dirname(os.path.dirname(__file__))
-    data_path = os.path.join(base_dir, "data", "sample.csv")
+    data_path = os.path.join(base_dir, "data", "processed_data.csv")
 
     if not os.path.exists(data_path):
-        print("ERROR: Dataset not found")
-        return None
+        raise FileNotFoundError("Processed dataset not found")
 
     df = pd.read_csv(data_path)
     return df
 
 
 def split_features_labels(df):
+    if "label" not in df.columns:
+        raise ValueError("'label' column not found in dataset")
+
     X = df.drop(columns=["label"])
     y = df["label"]
+
     print("Features and labels separated")
     return X, y
 
 
-def normalize_features(X):
-    X_norm = (X - X.mean()) / X.std()
-    print("Features normalized")
-    return X_norm
+def scale_features(X):
+    """
+    Standardize features using StandardScaler
+    """
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
 
-
-if __name__ == "__main__":
-    df = load_clean_data()
-
-    if df is not None:
-        X, y = split_features_labels(df)
-        X = normalize_features(X)
-
-        print("\nFeature Engineering Complete")
-        print("Feature sample:")
-        print(X.head())
-        print("Label sample:")
-        print(y.head())
+    print("Features scaled using StandardScaler")
+    return X_scaled
