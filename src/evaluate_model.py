@@ -1,34 +1,30 @@
-import pandas as pd
 from sklearn.metrics import accuracy_score, classification_report
+from feature_engineering import scale_features
 from model_utils import load_model
+from train_model import load_data, train_model
 
-DATA_PATH = "../data/processed_data.csv"
 
-def load_data():
-    print("Loading dataset for evaluation...")
-    data = pd.read_csv(DATA_PATH)
+def evaluate_model():
+    print("Preparing evaluation data...")
+    X, y = load_data()
 
-    if "label" not in data.columns:
-        raise ValueError("'label' column not found in dataset")
+    model, X_test, y_test = train_model(X, y)
 
-    X = data.drop("label", axis=1)
-    y = data["label"]
+    print("Scaling test features...")
+    X_test_scaled = scale_features(X_test)
 
-    return X, y
+    print("Loading trained model...")
+    model = load_model()
 
-def evaluate_model(model, X, y):
     print("Evaluating model...")
-    predictions = model.predict(X)
+    predictions = model.predict(X_test_scaled)
 
-    accuracy = accuracy_score(y, predictions)
-    print(f"Model Accuracy: {accuracy:.4f}\n")
+    accuracy = accuracy_score(y_test, predictions)
+    print(f"\nModel Accuracy: {accuracy:.4f}\n")
 
     print("Classification Report:")
-    print(classification_report(y, predictions))
+    print(classification_report(y_test, predictions))
+
 
 if __name__ == "__main__":
-    X, y = load_data()
-    model = load_model()   # ← THIS IS WHERE IT IS USED CORRECTLY
-    evaluate_model(model, X, y)
-
-    print("Evaluation completed successfully.")
+    evaluate_model()
