@@ -1,29 +1,28 @@
-from sklearn.metrics import accuracy_score, classification_report
-from feature_engineering import scale_features
-from model_utils import load_model
-from train_model import load_data, train_model
+import pandas as pd
+import joblib
+from sklearn.metrics import classification_report, accuracy_score
+
+DATA_PATH = "../data/processed_data.csv"
+MODEL_PATH = "../models/ids_model.pkl"
 
 
 def evaluate_model():
-    print("Preparing evaluation data...")
-    X, y = load_data()
+    print("Loading model and scaler...")
+    model, scaler = joblib.load(MODEL_PATH)
 
-    model, X_test, y_test = train_model(X, y)
+    print("Loading evaluation dataset...")
+    df = pd.read_csv(DATA_PATH)
 
-    print("Scaling test features...")
-    X_test_scaled = scale_features(X_test)
+    X = df.drop("label", axis=1)
+    y = df["label"]
 
-    print("Loading trained model...")
-    model = load_model()
+    X_scaled = scaler.transform(X)
+    y_pred = model.predict(X_scaled)
 
-    print("Evaluating model...")
-    predictions = model.predict(X_test_scaled)
-
-    accuracy = accuracy_score(y_test, predictions)
-    print(f"\nModel Accuracy: {accuracy:.4f}\n")
-
-    print("Classification Report:")
-    print(classification_report(y_test, predictions))
+    print("\nEvaluation Results:")
+    print("Accuracy:", accuracy_score(y, y_pred))
+    print("\nClassification Report:")
+    print(classification_report(y, y_pred))
 
 
 if __name__ == "__main__":

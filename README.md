@@ -74,3 +74,10 @@ If train-test splitting results in a single-class training set,
 the model automatically trains on the full dataset.
 This ensures pipeline stability during early-stage development
 with limited data.
+
+## Stable Training with Balanced Dataset
+
+To prevent training failures caused by single-class splits,
+the dataset was updated to ensure a minimum of two samples
+per class. The training pipeline now strictly validates data
+before training and follows a clean, production-style workflow.
