@@ -81,3 +81,12 @@ To prevent training failures caused by single-class splits,
 the dataset was updated to ensure a minimum of two samples
 per class. The training pipeline now strictly validates data
 before training and follows a clean, production-style workflow.
+
+## IDS-Oriented Feature Engineering
+
+We introduced intrusion-detection-inspired feature logic.
+Instead of using raw values directly, behavioral indicators such as
+packet ratio and activity thresholds were created.
+
+This improves interpretability and moves the system closer to a
+real-world IDS design while remaining compatible with small datasets.

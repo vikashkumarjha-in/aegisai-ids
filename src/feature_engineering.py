@@ -1,36 +1,34 @@
 import pandas as pd
-import os
-from sklearn.preprocessing import StandardScaler
 
 
-def load_clean_data():
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    data_path = os.path.join(base_dir, "data", "processed_data.csv")
-
-    if not os.path.exists(data_path):
-        raise FileNotFoundError("Processed dataset not found")
-
-    df = pd.read_csv(data_path)
+def load_data(path):
+    print("Loading raw data...")
+    df = pd.read_csv(path)
     return df
 
 
-def split_features_labels(df):
-    if "label" not in df.columns:
-        raise ValueError("'label' column not found in dataset")
+def create_ids_features(df):
+    """
+    Convert raw features into IDS-style behavioral features
+    """
 
-    X = df.drop(columns=["label"])
+    print("Creating IDS-based features...")
+
+    # Example behavioral features
+    df["packet_ratio"] = df["feature1"] / (df["feature2"] + 1)
+    df["high_activity"] = (df["feature1"] > 20).astype(int)
+
+    X = df[["packet_ratio", "high_activity"]]
     y = df["label"]
 
-    print("Features and labels separated")
     return X, y
 
 
-def scale_features(X):
-    """
-    Standardize features using StandardScaler
-    """
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+if __name__ == "__main__":
+    df = load_data("../data/processed_data.csv")
+    X, y = create_ids_features(df)
 
-    print("Features scaled using StandardScaler")
-    return X_scaled
+    print("\nFeature Engineering Output:")
+    print(X.head())
+    print("\nLabels:")
+    print(y.head())
