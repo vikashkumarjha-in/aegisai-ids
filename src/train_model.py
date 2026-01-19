@@ -1,41 +1,33 @@
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
-import joblib
-import os
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from feature_engineering import create_ids_features
+from model_utils import save_model
 
 DATA_PATH = "../data/processed_data.csv"
-MODEL_PATH = "../models/ids_model.pkl"
-
 
 def load_data():
     print("Loading processed dataset...")
     df = pd.read_csv(DATA_PATH)
-    print("Dataset loaded successfully")
+    return df
 
-    X = df.drop("label", axis=1)
-    y = df["label"]
+def train_model():
+    df = load_data()
 
-    return X, y
+    X, y = create_ids_features(df)
 
+    print("Training ML model using IDS-based features...")
 
-def train_model(X, y):
-    print("Scaling features...")
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+    pipeline = Pipeline([
+        ("scaler", StandardScaler()),
+        ("model", LogisticRegression(max_iter=1000))
+    ])
 
-    print("Training Logistic Regression model...")
-    model = LogisticRegression()
-    model.fit(X_scaled, y)
+    pipeline.fit(X, y)
 
-    os.makedirs("../models", exist_ok=True)
-    joblib.dump((model, scaler), MODEL_PATH)
-
-    print("Model saved successfully")
-    return model, scaler
-
+    save_model(pipeline)
+    print("Model trained and saved successfully")
 
 if __name__ == "__main__":
-    X, y = load_data()
-    train_model(X, y)
-    print("Training pipeline completed")
+    train_model()

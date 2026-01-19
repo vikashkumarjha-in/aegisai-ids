@@ -90,3 +90,13 @@ packet ratio and activity thresholds were created.
 
 This improves interpretability and moves the system closer to a
 real-world IDS design while remaining compatible with small datasets.
+
+## Rule-based IDS and ML Comparison
+
+A simple rule-based detector was implemented to provide explainable,
+behavior-based intrusion decisions (e.g. packet ratio thresholds,
+high-activity flags). A comparison script (`compare.py`) measures
+performance (accuracy, precision/recall) and agreement between the
+trained ML model and the rule-based detector. This helps validate
+the ML model against human-understandable rules.
+
