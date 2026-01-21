@@ -100,10 +100,19 @@ performance (accuracy, precision/recall) and agreement between the
 trained ML model and the rule-based detector. This helps validate
 the ML model against human-understandable rules.
 
-## Model Validation & Confusion Matrix
+## sModel Validation & Confusion Matrix
 
 A validation script (`src/validate.py`) runs the trained model on the
 processed dataset, prints accuracy and classification metrics, and saves
 a confusion matrix image (`models/confusion_matrix.png`). This provides
 a quick visual check of prediction results and is useful for demos.
 
+## Class Imbalance Handling
+
+Day 18 added automatic class-imbalance handling to the training pipeline. The script:
+- detects class distribution,
+- for small, imbalanced datasets (<=200 rows) performs safe random oversampling of the minority class,
+- for larger datasets uses `class_weight='balanced'` in the classifier,
+- trains a pipeline (scaler + classifier) and saves it for later evaluation.
+
+This keeps the training stable and reduces bias towards majority classes during early development.
