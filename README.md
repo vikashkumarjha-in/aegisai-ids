@@ -109,10 +109,17 @@ a quick visual check of prediction results and is useful for demos.
 
 ## Class Imbalance Handling
 
-Day 18 added automatic class-imbalance handling to the training pipeline. The script:
+Added automatic class-imbalance handling to the training pipeline. The script:
 - detects class distribution,
 - for small, imbalanced datasets (<=200 rows) performs safe random oversampling of the minority class,
 - for larger datasets uses `class_weight='balanced'` in the classifier,
 - trains a pipeline (scaler + classifier) and saves it for later evaluation.
 
 This keeps the training stable and reduces bias towards majority classes during early development.
+
+## Versioning & Experiment Registry
+
+Each trained model is saved as a versioned artifact (ids_model_vN.pkl). The latest
+model is available as ids_model.pkl for evaluation and deployment. Training metadata
+(train accuracy, timestamp, notes) is appended to `models/experiments.csv` to track
+experiments and enable reproducibility.

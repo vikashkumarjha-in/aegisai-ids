@@ -5,7 +5,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.utils import resample
 from feature_engineering import create_ids_features
-from model_utils import save_model
+from model_registry import save_model_version
+from sklearn.metrics import accuracy_score
 
 DATA_PATH = "../data/processed_data.csv"
 
@@ -16,11 +17,6 @@ def load_raw_data():
     return df
 
 def balance_data_if_needed(X, y, threshold_ratio=1.5):
-    """
-    If the largest class is more than threshold_ratio times the smallest class,
-    and the dataset is small, perform simple random oversampling of minority class.
-    Returns balanced X, y and a flag whether we oversampled.
-    """
     counts = y.value_counts()
     if len(counts) < 2:
         raise ValueError("Need at least two classes to train.")
@@ -32,9 +28,6 @@ def balance_data_if_needed(X, y, threshold_ratio=1.5):
     ratio = maj_count / float(min_count)
     print(f"Class counts before balancing:\n{counts.to_dict()}  (ratio={ratio:.2f})")
 
-    # Decide strategy:
-    # - If ratio is small (< threshold), skip balancing
-    # - If dataset small (<=200 rows) and ratio >= threshold, oversample
     if ratio < threshold_ratio:
         print("Classes reasonably balanced — no oversampling.")
         return X, y, False
@@ -52,24 +45,21 @@ def balance_data_if_needed(X, y, threshold_ratio=1.5):
                                       n_samples=maj_count,
                                       random_state=42)
         balanced = pd.concat([majority, minority_upsampled])
-        # shuffle
         balanced = balanced.sample(frac=1, random_state=42).reset_index(drop=True)
         X_bal = balanced.drop(columns=["label"])
         y_bal = balanced["label"]
         print("Class counts after oversampling:", y_bal.value_counts().to_dict())
         return X_bal, y_bal, True
 
-    # For larger datasets, prefer class_weight approach (no oversampling)
-    print("Large dataset — prefer class_weight in model. No oversampling performed.")
+    print("Large dataset — using class_weight in model.")
     return X, y, False
 
-def train_model():
+def train_model_and_version(notes: str = ""):
     df = load_raw_data()
     X, y = create_ids_features(df)
 
     X_bal, y_bal, did_oversample = balance_data_if_needed(X, y)
 
-    # If we oversampled, we don't use class_weight. Otherwise use 'balanced' to help classifier.
     if did_oversample:
         clf = LogisticRegression(max_iter=1000)
     else:
@@ -83,8 +73,18 @@ def train_model():
     print("Training model on features:", list(X_bal.columns))
     pipeline.fit(X_bal, y_bal)
 
-    save_model(pipeline)
-    print("Training complete and model saved.")
+    # compute training accuracy for metadata
+    y_pred = pipeline.predict(X_bal)
+    train_acc = float(accuracy_score(y_bal, y_pred))
+
+    # save versioned model and write experiments.csv
+    metrics = {"train_accuracy": train_acc}
+    version, version_path, latest_path = save_model_version(pipeline, metrics=metrics, notes=notes)
+
+    print(f"Model saved: version={version}, path={version_path}")
+    print("Latest model also updated at:", latest_path)
+    return version
 
 if __name__ == "__main__":
-    train_model()
+    v = train_model_and_version(notes="Day 19 training")
+    print("Training + versioning completed. Version:", v)
