@@ -123,3 +123,10 @@ Each trained model is saved as a versioned artifact (ids_model_vN.pkl). The late
 model is available as ids_model.pkl for evaluation and deployment. Training metadata
 (train accuracy, timestamp, notes) is appended to `models/experiments.csv` to track
 experiments and enable reproducibility.
+
+## Hyperparameter Tuning & Safe Fallback
+
+Introduces an automated tuning script (`src/hyperparameter_tuning.py`) that:
+- attempts GridSearchCV for Logistic Regression when class counts and sample size permit,
+- otherwise falls back to training a default pipeline (safe for tiny datasets),
+- saves tuned or fallback models as versioned artifacts and records training/tuning metrics in `models/experiments.csv`.
