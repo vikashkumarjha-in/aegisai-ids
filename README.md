@@ -130,3 +130,9 @@ Introduces an automated tuning script (`src/hyperparameter_tuning.py`) that:
 - attempts GridSearchCV for Logistic Regression when class counts and sample size permit,
 - otherwise falls back to training a default pipeline (safe for tiny datasets),
 - saves tuned or fallback models as versioned artifacts and records training/tuning metrics in `models/experiments.csv`.
+
+## Usage
+
+This project includes a simple Command-Line Interface (CLI) for training and evaluating models.
+To use the CLI, open the project root and run:
+Train a model:

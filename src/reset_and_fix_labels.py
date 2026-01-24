@@ -13,5 +13,5 @@ df.loc[df.index[-1], "label"] = 1
 # Save back
 df.to_csv("../data/processed_data.csv", index=False)
 
-print("✅ Labels fixed successfully")
+print(" Labels fixed successfully")
 print(df["label"].value_counts())

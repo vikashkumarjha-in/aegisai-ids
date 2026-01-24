@@ -16,4 +16,4 @@ df.to_csv(DATA_PATH, index=False)
 
 print("\nAfter fix:")
 print(df["label"].value_counts())
-print("\n✅ Labels fixed successfully")
+print("\n Labels fixed successfully")
