@@ -136,3 +136,17 @@ Introduces an automated tuning script (`src/hyperparameter_tuning.py`) that:
 This project includes a simple Command-Line Interface (CLI) for training and evaluating models.
 To use the CLI, open the project root and run:
 Train a model:
+
+# AegisAI IDS API (FastAPI)
+
+## Day 22 Overview
+On Day 22, we implemented the **Intrusion Detection System (IDS) REST API** using **FastAPI**. The API loads the trained pipeline (`ids_model_v4.pkl`) and provides a `/predict` endpoint to detect network attacks based on engineered features.
+
+### Features:
+- Loads trained pipeline (scaler + model) for inference.
+- POST `/predict` endpoint accepts JSON with:
+  ```json
+  {
+    "packet_ratio": 0.75,
+    "high_activity": 1
+  }
