@@ -150,3 +150,39 @@ On Day 22, we implemented the **Intrusion Detection System (IDS) REST API** usin
     "packet_ratio": 0.75,
     "high_activity": 1
   }
+
+## Day 23 — Integrate real IDS datasets (NSL-KDD / CICIDS2017)
+
+This day adds dataset integration and preprocessing scripts to prepare real-world datasets
+for training and evaluation.
+
+### NSL-KDD (small / mirror)
+- Download from Kaggle (example): `kaggle datasets download -d hassan06/nslkdd -p data/nslkdd --unzip`.
+- Preprocess: `python src/preprocess_nslkdd.py` → creates `data/processed_data.csv`.
+
+### CICIDS2017 (recommended, realistic)
+- Download from UNB/CIC or Kaggle mirror: see official page. :contentReference[oaicite:7]{index=7}
+- Preprocess: `python src/preprocess_cicids2017.py` → creates `data/processed_data.csv`.
+
+### After preprocessing
+Run training:
+```bash
+python src/train_model.py
+
+## integration (metadata review + synthetic testing)
+
+We reviewed CICIDS2017 documentation (login required) and prepared a processing plan
+for production ingestion. No dataset was downloaded.
+
+For development/testing without the full dataset, we generate a synthetic
+sample matching CICIDS2017 headers and create `data/processed_data.csv` so the
+existing pipeline (feature_engineering → train → evaluate → validate → compare)
+can be run end-to-end.
+
+Run:
+```bash
+python src/generate_cicids_sample.py
+python src/train_model.py
+python src/evaluate_model.py
+python src/validate.py
+python src/compare.py

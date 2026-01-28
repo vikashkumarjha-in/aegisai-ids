@@ -4,3 +4,5 @@ version,filename,saved_at,notes,train_accuracy
 3,ids_model_v3.pkl,2026-01-24T11:16:36.583806,initial training,1.0
 4,ids_model_v4.pkl,2026-01-25T12:59:41.946166,Day 19 training,1.0
 5,ids_model_v5.pkl,2026-01-26T10:21:32.704641,Day 19 training,1.0
+6,ids_model_v6.pkl,2026-01-28T16:13:34.075761,Day 19 training,1.0
+7,ids_model_v7.pkl,2026-01-28T16:24:09.901552,Day 19 training,1.0
