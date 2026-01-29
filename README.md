@@ -139,8 +139,7 @@ Train a model:
 
 # AegisAI IDS API (FastAPI)
 
-## Day 22 Overview
-On Day 22, we implemented the **Intrusion Detection System (IDS) REST API** using **FastAPI**. The API loads the trained pipeline (`ids_model_v4.pkl`) and provides a `/predict` endpoint to detect network attacks based on engineered features.
+We implemented the **Intrusion Detection System (IDS) REST API** using **FastAPI**. The API loads the trained pipeline (`ids_model_v4.pkl`) and provides a `/predict` endpoint to detect network attacks based on engineered features.
 
 ### Features:
 - Loads trained pipeline (scaler + model) for inference.
@@ -151,9 +150,9 @@ On Day 22, we implemented the **Intrusion Detection System (IDS) REST API** usin
     "high_activity": 1
   }
 
-## Day 23 — Integrate real IDS datasets (NSL-KDD / CICIDS2017)
+## Integrate real IDS datasets (NSL-KDD / CICIDS2017)
 
-This day adds dataset integration and preprocessing scripts to prepare real-world datasets
+Adds dataset integration and preprocessing scripts to prepare real-world datasets
 for training and evaluation.
 
 ### NSL-KDD (small / mirror)
@@ -186,3 +185,32 @@ python src/train_model.py
 python src/evaluate_model.py
 python src/validate.py
 python src/compare.py
+
+## Deployment & Demo
+
+This stage demonstrates the final working flow of the AegisAI Intrusion Detection System (IDS) using the trained machine learning model.
+
+### Objective
+- Load the trained IDS model
+- Simulate network traffic input
+- Perform real-time prediction (Normal / Attack)
+- Validate end-to-end project readiness
+
+### Folder Structure Used
+
+aegisai-ids/
+│
+├── models/
+│   └── latest_model.pkl
+│
+├── src/
+│   └── deploy_demo.py
+│
+└── README.md
+
+
+### Execution (CLI Demo)
+Run the deployment demo from the `src` directory:
+
+```bash
+python deploy_demo.py
