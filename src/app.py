@@ -101,19 +101,25 @@ def home():
 @app.post("/predict")
 def predict(data: TrafficInput):
 
-    raw_df = pd.DataFrame([{
-        "src_bytes": data.src_bytes,
-        "dst_bytes": data.dst_bytes,
-        "count": data.count,
-        "label": 0
-    }])
+    try:
+        raw_df = pd.DataFrame([{
+            "src_bytes": data.src_bytes,
+            "dst_bytes": data.dst_bytes,
+            "count": data.count,
+            "label": 0
+        }])
 
-    X, _ = create_ids_features(raw_df)
+        X, _ = create_ids_features(raw_df)
 
-    prediction = int(model.predict(X)[0])
+        prediction = int(model.predict(X)[0])
 
-    result = "attack" if prediction == 1 else "normal"
+        result = "attack" if prediction == 1 else "normal"
 
-    return {
-        "prediction": result
-    }
+        return {
+            "prediction": result
+        }
+
+    except Exception as e:
+        return {
+            "error": str(e)
+        }
