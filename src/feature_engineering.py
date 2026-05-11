@@ -1,34 +1,16 @@
+# src/feature_engineering.py
 import pandas as pd
 
-
-def load_data(path):
-    print("Loading raw data...")
-    df = pd.read_csv(path)
-    return df
-
-
-def create_ids_features(df):
+def create_ids_features(df: pd.DataFrame):
     """
-    Convert raw features into IDS-style behavioral features
+    Converts input dataframe into model-ready features.
     """
+    df = df.copy()
 
-    print("Creating IDS-based features...")
-
-    # Example behavioral features
-    df["packet_ratio"] = df["feature1"] / (df["feature2"] + 1)
-    df["high_activity"] = (df["feature1"] > 20).astype(int)
+    df["packet_ratio"] = df["src_bytes"] / (df["dst_bytes"] + 1)
+    df["high_activity"] = (df["count"] > 100).astype(int)
 
     X = df[["packet_ratio", "high_activity"]]
-    y = df["label"]
+    y = df["label"] if "label" in df.columns else None
 
     return X, y
-
-
-if __name__ == "__main__":
-    df = load_data("../data/processed_data.csv")
-    X, y = create_ids_features(df)
-
-    print("\nFeature Engineering Output:")
-    print(X.head())
-    print("\nLabels:")
-    print(y.head())

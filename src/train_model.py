@@ -1,4 +1,7 @@
 # src/train_model.py
+from feature_engineering import create_ids_features
+
+
 import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
