@@ -1,16 +1,38 @@
+# src/compare.py
+
+import sys
+import os
 import pandas as pd
-from feature_engineering import create_ids_features
 from model_utils import load_model
 from rule_based import rule_predict
 from sklearn.metrics import classification_report, accuracy_score
 
+# Ensure project root is in sys.path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# ===============================
+# PATH CONFIGURATION
+# ===============================
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(BASE_DIR, "data", "processed_nslkdd.csv")
+MODEL_PATH = os.path.join(BASE_DIR, "models", "latest_model.pkl")
+
+
 def compare():
-    df = pd.read_csv("../data/processed_data.csv")
+    print("Loading evaluation dataset...")
+    df = pd.read_csv(DATA_PATH)
 
-    X, y = create_ids_features(df)
+    # ===============================
+    # FEATURE SECTION (updated)
+    # ===============================
+    feature_cols = [c for c in df.columns if c != "label"]
+    X = df[feature_cols]
+    y = df["label"]
 
+    print("Loading ML model...")
     model = load_model()
 
+    print("Running predictions...")
     ml_preds = model.predict(X)
     rule_preds = rule_predict(X)
 
@@ -24,6 +46,7 @@ def compare():
 
     agreement = sum(ml_preds == rule_preds)
     print(f"\nAgreement: {agreement}/{len(y)}")
+
 
 if __name__ == "__main__":
     compare()

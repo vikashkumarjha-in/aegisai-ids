@@ -1,17 +1,23 @@
+# src/preprocess.py
+
+import os
 import pandas as pd
 import numpy as np
-import os
+
+# ===============================
+# PATH CONFIGURATION
+# ===============================
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(BASE_DIR, "data", "sample.csv")
+OUTPUT_PATH = os.path.join(BASE_DIR, "data", "processed_data.csv")
 
 
 def load_data():
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    data_path = os.path.join(base_dir, "data", "sample.csv")
-
-    if not os.path.exists(data_path):
+    if not os.path.exists(DATA_PATH):
         print("ERROR: Dataset not found")
         return None
 
-    df = pd.read_csv(data_path)
+    df = pd.read_csv(DATA_PATH)
     print("Dataset loaded")
     print("Shape:", df.shape)
     return df
@@ -54,5 +60,6 @@ if __name__ == "__main__":
         print("\nPreprocessing complete")
         print(df.head())
 
-df.to_csv("processed_data.csv", index=False)
-print("Processed data saved as processed_data.csv")
+        # Save processed dataset
+        df.to_csv(OUTPUT_PATH, index=False)
+        print(f"Processed data saved as {OUTPUT_PATH}")

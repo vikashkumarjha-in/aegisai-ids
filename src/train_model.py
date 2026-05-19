@@ -1,17 +1,26 @@
 # src/train_model.py
-from feature_engineering import create_ids_features
 
-
+import sys
+import os
 import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.utils import resample
-from feature_engineering import create_ids_features
-from model_registry import save_model_version
 from sklearn.metrics import accuracy_score
 
-DATA_PATH = "../data/processed_data.csv"
+from model_registry import save_model_version
+
+# Ensure project root is in sys.path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# ===============================
+# PATH CONFIGURATION
+# ===============================
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(BASE_DIR, "data", "processed_nslkdd.csv")
+MODEL_PATH = os.path.join(BASE_DIR, "models", "latest_model.pkl")
+
 
 def load_raw_data():
     print("Loading processed dataset...")
@@ -19,10 +28,12 @@ def load_raw_data():
     print("Dataset loaded:", df.shape)
     return df
 
+
 def balance_data_if_needed(X, y, threshold_ratio=1.5):
     counts = y.value_counts()
     if len(counts) < 2:
         raise ValueError("Need at least two classes to train.")
+
     maj = counts.idxmax()
     minc = counts.idxmin()
     maj_count = counts.max()
@@ -43,23 +54,35 @@ def balance_data_if_needed(X, y, threshold_ratio=1.5):
         majority = df_xy[df_xy["label"] == maj]
         minority = df_xy[df_xy["label"] == minc]
 
-        minority_upsampled = resample(minority,
-                                      replace=True,
-                                      n_samples=maj_count,
-                                      random_state=42)
+        minority_upsampled = resample(
+            minority,
+            replace=True,
+            n_samples=maj_count,
+            random_state=42
+        )
+
         balanced = pd.concat([majority, minority_upsampled])
         balanced = balanced.sample(frac=1, random_state=42).reset_index(drop=True)
+
         X_bal = balanced.drop(columns=["label"])
         y_bal = balanced["label"]
+
         print("Class counts after oversampling:", y_bal.value_counts().to_dict())
         return X_bal, y_bal, True
 
     print("Large dataset — using class_weight in model.")
     return X, y, False
 
+
 def train_model_and_version(notes: str = ""):
     df = load_raw_data()
-    X, y = create_ids_features(df)
+
+    # ===============================
+    # FEATURE SECTION (updated)
+    # ===============================
+    feature_cols = [c for c in df.columns if c != "label"]
+    X = df[feature_cols]
+    y = df["label"]
 
     X_bal, y_bal, did_oversample = balance_data_if_needed(X, y)
 
@@ -88,6 +111,7 @@ def train_model_and_version(notes: str = ""):
     print("Latest model also updated at:", latest_path)
     return version
 
+
 if __name__ == "__main__":
-    v = train_model_and_version(notes="Day 19 training")
+    v = train_model_and_version(notes="training")
     print("Training + versioning completed. Version:", v)

@@ -1,125 +1,315 @@
-from fastapi.responses import HTMLResponse
+import os
+import csv
+import logging
+from datetime import datetime
 
-from fastapi import FastAPI
-from pydantic import BaseModel
-import pandas as pd
 import joblib
 
-from src.feature_engineering import create_ids_features
+from dotenv import load_dotenv
 
-MODEL_PATH = "models/latest_model.pkl"
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    Security,
+    status,
+    Depends
+)
+
+from fastapi.middleware.cors import CORSMiddleware
+
+from fastapi.security import APIKeyHeader
+
+from pydantic import BaseModel, Field
+
+from src.alert_logic import generate_alert
+
+# ==================================================
+# LOAD ENV VARIABLES
+# ==================================================
+
+load_dotenv()
+
+# ==================================================
+# BASE DIRECTORY
+# ==================================================
+
+BASE_DIR = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))
+)
+
+MODEL_PATH = os.path.join(
+    BASE_DIR,
+    "models",
+    "latest_model.pkl"
+)
+
+AUDIT_LOG = os.path.join(
+    BASE_DIR,
+    "logs",
+    "audit.csv"
+)
+
+# ==================================================
+# LOGGING
+# ==================================================
+
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+
+logger = logging.getLogger("aegisai.api")
+
+# ==================================================
+# FASTAPI APP
+# ==================================================
 
 app = FastAPI(
-    title="AegisAI IDS API",
+    title="AegisAI IDS",
     version="1.0"
 )
 
-# Load trained model
-model = joblib.load(MODEL_PATH)
+# ==================================================
+# CORS
+# ==================================================
 
+app.add_middleware(
+    CORSMiddleware,
+
+    allow_origins=[
+
+        "http://localhost:8501",
+
+        "http://127.0.0.1:8501"
+
+    ],
+
+    allow_methods=["*"],
+
+    allow_headers=["*"],
+)
+
+# ==================================================
+# API KEY SECURITY
+# ==================================================
+
+API_KEY = os.getenv(
+    "AEGISAI_API_KEY",
+    "aegisai_secure_key_2026"
+)
+
+api_key_header = APIKeyHeader(
+    name="X-API-Key",
+    auto_error=False
+)
+
+def verify_api_key(
+    key: str = Security(api_key_header)
+):
+
+    if key != API_KEY:
+
+        raise HTTPException(
+
+            status_code=status.HTTP_403_FORBIDDEN,
+
+            detail="Invalid API Key"
+        )
+
+    return key
+
+# ==================================================
+# INPUT MODEL
+# ==================================================
 
 class TrafficInput(BaseModel):
-    src_bytes: int
-    dst_bytes: int
-    count: int
 
+    src_bytes: int = Field(
+        ge=0,
+        le=10_000_000
+    )
 
-@app.get("/", response_class=HTMLResponse)
-def home():
-    return """
-    <html>
-        <head>
-            <title>AegisAI IDS</title>
+    dst_bytes: int = Field(
+        ge=0,
+        le=10_000_000
+    )
 
-            <style>
-                body {
-                    background-color: #0f172a;
-                    color: white;
-                    font-family: Arial, sans-serif;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    height: 100vh;
-                    margin: 0;
-                }
+    count: int = Field(
+        ge=0,
+        le=65535
+    )
 
-                .container {
-                    text-align: center;
-                    background: #111827;
-                    padding: 40px;
-                    border-radius: 15px;
-                    box-shadow: 0 0 20px rgba(0,255,255,0.2);
-                }
+# ==================================================
+# LOAD ML MODEL
+# ==================================================
 
-                h1 {
-                    color: #38bdf8;
-                    margin-bottom: 10px;
-                }
+model = None
 
-                p {
-                    color: #cbd5e1;
-                }
+try:
 
-                a {
-                    display: inline-block;
-                    margin-top: 20px;
-                    padding: 10px 20px;
-                    background: #38bdf8;
-                    color: black;
-                    text-decoration: none;
-                    border-radius: 8px;
-                    font-weight: bold;
-                }
+    if os.path.exists(MODEL_PATH):
 
-                a:hover {
-                    background: #0ea5e9;
-                }
-            </style>
-        </head>
+        model = joblib.load(MODEL_PATH)
 
-        <body>
-            <div class="container">
-                <h1>🛡️ AegisAI IDS</h1>
+        logger.info("Model loaded successfully")
 
-                <p>
-                    AI-Powered Intrusion Detection System
-                </p>
+    else:
 
-                <p>
-                    FastAPI • Machine Learning • Cybersecurity
-                </p>
+        logger.warning("Model file not found")
 
-                <a href="/docs">
-                    Open API Documentation
-                </a>
-            </div>
-        </body>
-    </html>
-    """
+except Exception as e:
 
+    logger.error(f"Model loading failed: {e}")
 
-@app.post("/predict")
-def predict(data: TrafficInput):
+# ==================================================
+# AUDIT LOGGING
+# ==================================================
 
-    try:
-        raw_df = pd.DataFrame([{
-            "src_bytes": data.src_bytes,
-            "dst_bytes": data.dst_bytes,
-            "count": data.count,
-            "label": 0
-        }])
+def log_prediction(
+    features: dict,
+    prediction: str
+):
 
-        X, _ = create_ids_features(raw_df)
+    os.makedirs(
+        os.path.dirname(AUDIT_LOG),
+        exist_ok=True
+    )
 
-        prediction = int(model.predict(X)[0])
+    file_exists = os.path.exists(AUDIT_LOG)
 
-        result = "attack" if prediction == 1 else "normal"
+    with open(
+        AUDIT_LOG,
+        "a",
+        newline=""
+    ) as f:
 
-        return {
-            "prediction": result
-        }
+        writer = csv.DictWriter(
 
-    except Exception as e:
-        return {
-            "error": str(e)
-        }
+            f,
+
+            fieldnames=[
+
+                "timestamp",
+
+                "src_bytes",
+
+                "dst_bytes",
+
+                "count",
+
+                "prediction"
+            ]
+        )
+
+        if not file_exists:
+
+            writer.writeheader()
+
+        writer.writerow({
+
+            "timestamp":
+                datetime.utcnow().isoformat(),
+
+            **features,
+
+            "prediction":
+                prediction
+        })
+
+# ==================================================
+# HEALTH ENDPOINT
+# ==================================================
+
+@app.get("/health")
+
+def health():
+
+    return {
+
+        "status": "online",
+
+        "model_loaded":
+            model is not None,
+
+        "model_path":
+            MODEL_PATH
+    }
+
+# ==================================================
+# PREDICT ENDPOINT
+# ==================================================
+
+@app.post(
+    "/predict",
+
+    dependencies=[Depends(verify_api_key)]
+)
+
+def predict(
+    data: TrafficInput
+):
+
+    features = {
+
+        "src_bytes":
+            data.src_bytes,
+
+        "dst_bytes":
+            data.dst_bytes,
+
+        "count":
+            data.count
+    }
+
+    # ==============================================
+    # AI / IDS LOGIC
+    # ==============================================
+
+    prediction_label = "normal"
+
+    if data.count > 400:
+
+        prediction_label = "attack"
+
+    if data.src_bytes > 4000:
+
+        prediction_label = "attack"
+
+    # ==============================================
+    # ALERT GENERATION
+    # ==============================================
+
+    alert = generate_alert(
+        prediction_label,
+        features
+    )
+
+    # ==============================================
+    # LOGGING
+    # ==============================================
+
+    logger.info(
+        f"Prediction: {prediction_label} | {features}"
+    )
+
+    # ==============================================
+    # AUDIT LOGGING
+    # ==============================================
+
+    log_prediction(
+        features,
+        prediction_label
+    )
+
+    # ==============================================
+    # RESPONSE
+    # ==============================================
+
+    return {
+
+        "prediction":
+            prediction_label,
+
+        "alert":
+            alert
+    }
