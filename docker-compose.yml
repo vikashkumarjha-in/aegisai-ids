@@ -1,0 +1,53 @@
+
+
+services:
+
+  api:
+
+    build: .
+
+    container_name: aegisai_api
+
+    ports:
+
+      - "8000:8000"
+
+    environment:
+
+      - AEGISAI_API_KEY=${AEGISAI_API_KEY}
+
+      - LOG_LEVEL=INFO
+
+    volumes:
+
+      - ./models:/app/models
+
+      - ./logs:/app/logs
+
+    restart: unless-stopped
+
+  dashboard:
+
+    build:
+
+      context: .
+
+      dockerfile: Dockerfile.frontend
+
+    container_name: aegisai_dashboard
+
+    ports:
+
+      - "8501:8501"
+
+    environment:
+
+      - AEGISAI_API_URL=http://api:8000
+
+      - AEGISAI_API_KEY=${AEGISAI_API_KEY}
+
+    depends_on:
+
+      - api
+
+    restart: unless-stopped

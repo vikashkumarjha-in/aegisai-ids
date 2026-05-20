@@ -1,81 +1,64 @@
 import streamlit as st
-
-from streamlit_autorefresh import st_autorefresh
-
+import plotly.graph_objects as go
+import plotly.express as px
+import numpy as np
+import pandas as pd
 import random
-
-import utils.api as api
-
-# =========================
-# AUTO REFRESH
-# =========================
-
-st_autorefresh(
-    interval=3000,
-    key="monitor_refresh"
+from streamlit_autorefresh import st_autorefresh
+from utils.styles import load_css
+load_css()
+st_autorefresh(interval=2000, key="live_monitor_refresh")
+st.title("🛰️ Live Threat Monitor"
 )
-
-st.title("Live Threat Monitor")
-
-# =========================
-# CHECK BACKEND
-# =========================
-
-if not api.check_health():
-
-    st.error("Backend Offline")
-
-    st.stop()
-
-# =========================
-# SIMULATED TRAFFIC
-# =========================
-
-packet = {
-
-    "src_bytes": random.randint(50, 5000),
-
-    "dst_bytes": random.randint(10, 2000),
-
-    "count": random.randint(1, 512)
+threat_level = random.randint(10, 95)
+fig = go.Figure(go.Indicator(
+mode="gauge+number",
+value=threat_level,
+title={'text': "Current Threat Level"},
+gauge={
+'axis': {'range': [0, 100]},
+'bar': {'color': "red"},
+'steps': [
+{'range': [0, 40], 'color': "green"},
+{'range': [40, 70], 'color': "orange"},
+{'range': [70, 100], 'color': "red"},
+],
 }
+))
+fig.update_layout(template="plotly_dark")
+st.plotly_chart(fig, use_container_width=True)
 
-# =========================
-# SEND TO API
-# =========================
-
-result = api.predict(packet)
-
-# =========================
-# HANDLE RESPONSE
-# =========================
-
-if "error" in result:
-
-    st.error(f"Backend error: {result['error']}")
-
-else:
-
-    prediction = result.get("prediction", "unknown")
-
-    alert = result.get("alert", {})
-
-    severity = alert.get("severity", "unknown")
-
-    message = alert.get("message", "No message")
-
-    st.subheader("Live Packet")
-
-    st.json(packet)
-
-    if prediction == "attack":
-
-        st.error(message)
-
-        st.warning(f"Severity: {severity.upper()}")
-
-    else:
-
-        st.success(message)
-
-        st.info(f"Severity: {severity.upper()}")
+packets = np.random.randint(100, 1000, 30)
+time_axis = list(range(30))
+line_fig = px.line(
+x=time_axis,
+y=packets,
+title="Packets/sec"
+)
+line_fig.update_layout(template="plotly_dark")
+st.plotly_chart(line_fig, use_container_width=True)
+st.subheader("🌐 Network Activity"
+)
+network_df = pd.DataFrame({
+"x": np.random.rand(30),
+"y": np.random.rand(30),
+"z": np.random.rand(30),
+"severity": np.random.choice(["Attack", "Benign"], 30)
+})
+network_fig = px.scatter_3d(
+network_df,
+x="x",
+y="y",
+z="z",
+color="severity",
+title="3D Network Graph"
+)
+network_fig.update_layout(template="plotly_dark")
+st.plotly_chart(network_fig, use_container_width=True)
+st.subheader("📦 Live Packets"
+)
+st.dataframe(
+st.session_state.packet_history.head(30),
+use_container_width=True,
+height=400
+)
