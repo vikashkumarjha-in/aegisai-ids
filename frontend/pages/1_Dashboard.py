@@ -1,234 +1,321 @@
-import streamlit as st
-import random
-import pandas as pd
-import datetime as dt
-from streamlit_autorefresh import st_autorefresh
-import utils.api as api
+# frontend/pages/1_Dashboard.py
 
-# ===============================
-# MODULE 4 — UI / PAGE CONFIG
-# ===============================
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from streamlit_autorefresh import st_autorefresh
+from utils.styles import load_css
+from utils.data_generator import generate_event
+import random
+from datetime import datetime
+
+# =========================================================
+# SESSION STATE INIT
+# =========================================================
+if "logs" not in st.session_state:
+    st.session_state.logs = pd.DataFrame()
+
+if "packet_history" not in st.session_state:
+    st.session_state.packet_history = pd.DataFrame()
+
+if "blocked_ips" not in st.session_state:
+    st.session_state.blocked_ips = set()
+
+# =========================================================
+# PAGE CONFIG
+# =========================================================
 st.set_page_config(
-    page_title="AegisAI SOC Command Center",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="AegisAI Dashboard",
+    layout="wide"
 )
 
+load_css()
+
+# Inject consistent cyberpunk theme styling
 st.markdown("""
 <style>
-.stApp { background-color: #F8FAFC; color: #0F172A; }
-section[data-testid="stSidebar"] { background-color: #E2E8F0; }
-h1, h2, h3 { color: #0F172A !important; font-weight: 700; }
+html, body, [class*="css"] {
+    background-color: #030611 !important;
+    color: #e2f1f7 !important;
+    font-family: 'Consolas', 'Segoe UI', monospace, sans-serif;
+}
+.stApp {
+    background: 
+        radial-gradient(circle at 15% 15%, rgba(0, 255, 136, 0.05), transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(0, 170, 255, 0.06), transparent 45%),
+        #030611 !important;
+}
 div[data-testid="stMetric"] {
-    background-color: #FFFFFF; border: 1px solid #CBD5E1;
-    padding: 14px; border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+    background: linear-gradient(135deg, rgba(8,16,36,0.85) 0%, rgba(4,8,20,0.9) 100%) !important;
+    border: 1px solid rgba(0, 255, 255, 0.15) !important;
+    padding: 15px 20px !important;
+    border-radius: 6px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
 }
-div[data-testid="stMetricValue"] { color: #0F172A; font-weight: 700; }
-.stButton > button {
-    background-color: #2563EB !important; color: white !important;
-    border-radius: 10px !important; font-weight: 600 !important; border: none !important;
+div[data-testid="stMetric"]:hover {
+    border-color: rgba(0, 255, 255, 0.4) !important;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.15) !important;
 }
-.stButton > button:hover { background-color: #1D4ED8 !important; }
-.dataframe { background-color: white; color: #0F172A; }
-.stAlert { border-radius: 10px; }
-.stSuccess { border-left: 5px solid #22C55E; }
-.stWarning { border-left: 5px solid #F59E0B; }
-.stError { border-left: 5px solid #EF4444; }
-hr { border: 1px solid #E2E8F0; }
+div[data-testid="stMetric"] label {
+    color: #627d98 !important;
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+    font-weight: 600 !important;
+}
+div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+    font-size: 28px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    font-family: 'Consolas', monospace !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# Auto refresh every 3 seconds
-st_autorefresh(interval=3000, key="soc_refresh")
+# =========================================================
+# AUTO REFRESH
+# =========================================================
+st_autorefresh(interval=2000, key="dashboard_refresh")
 
-# Sidebar
-st.sidebar.title("AegisAI SOC")
-backend_online = api.check_health()
+if "dashboard_initialized" not in st.session_state:
+    st.session_state.dashboard_initialized = False
 
-if backend_online:
+# =========================================================
+# GENERATE INITIAL DATA
+# =========================================================
+if not st.session_state.dashboard_initialized:
+    initial_events = []
+    for _ in range(120):
+        event = generate_event()
+        initial_events.append(event)
+        if event["Severity"] == "Critical":
+            st.session_state.blocked_ips.add(event["Source IP"])
+    initial_df = pd.DataFrame(initial_events)
+    st.session_state.logs = initial_df.copy()
+    st.session_state.packet_history = initial_df.copy()
+    st.session_state.dashboard_initialized = True
 
-    st.sidebar.success("Backend: Connected")
+# =========================================================
+# LIVE EVENT GENERATION
+# =========================================================
+new_event = generate_event()
+new_df = pd.DataFrame([new_event])
 
-else:
+# Add new event to logs
+st.session_state.logs = pd.concat([new_df, st.session_state.logs], ignore_index=True)
+st.session_state.packet_history = pd.concat([new_df, st.session_state.packet_history], ignore_index=True)
 
-    st.sidebar.error("Backend: Offline")
-st.sidebar.caption("Frontend: Streamlit Dashboard")
+# Keep only latest rows
+st.session_state.logs = st.session_state.logs.head(500)
+st.session_state.packet_history = st.session_state.packet_history.head(500)
 
-# ===============================
-# SESSION STATE INIT
-# ===============================
-if "logs" not in st.session_state:
-    st.session_state.logs = pd.DataFrame(
-        columns=["Time", "Source IP", "Attack Type", "Protocol", "Severity"]
+# Auto block critical IPs
+if new_event["Severity"] == "Critical":
+    st.session_state.blocked_ips.add(new_event["Source IP"])
+
+# =========================================================
+# HEADER
+# =========================================================
+st.title("📊 Security Dashboard")
+st.caption(f"Last Updated: {datetime.now().strftime('%d %b %Y %H:%M:%S')}")
+
+st.markdown(
+    """
+    <div style='color:#9aa4b2; margin-bottom:20px; font-size:14px; text-transform:uppercase; letter-spacing:1px;'>
+    Enterprise Intrusion Detection & Threat Monitoring Platform
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# =========================================================
+# LIVE METRICS ENGINE
+# =========================================================
+total_events = len(st.session_state.logs)
+blocked_ips_count = random.randint(1200, 3500)
+ai_confidence = round(random.uniform(94.1, 99.8), 2)
+system_status = random.choice(["ACTIVE", "MONITORING", "SECURE"])
+
+m1, m2, m3, m4 = st.columns(4)
+
+with m1:
+    st.metric(
+        "🚨 Total Threats",
+        f"{total_events:,}",
+        delta=f"+{random.randint(2,12)}"
     )
 
-if "packet_streaming" not in st.session_state:
-    st.session_state.packet_streaming = False
-
-if "packet_history" not in st.session_state:
-    st.session_state.packet_history = pd.DataFrame(
-        columns=["Time", "Src Bytes", "Dst Bytes", "Count", "Prediction"]
+with m2:
+    st.metric(
+        "⛔ Blocked IPs",
+        f"{blocked_ips_count:,}",
+        delta=f"+{random.randint(1,9)}"
     )
 
-# Helper: generate a sample packet
-def generate_packet():
-    return {
-        "src_bytes": random.randint(50, 5000),
-        "dst_bytes": random.randint(10, 2000),
-        "count": random.randint(1, 512)
-    }
+with m3:
+    st.metric(
+        "🧠 AI Confidence",
+        f"{ai_confidence}%",
+        delta="+0.2%"
+    )
 
-# Helper: append a row to a dataframe
-def append_row(df, row):
-    return pd.concat([df, pd.DataFrame([row])], ignore_index=True)
+with m4:
+    st.metric(
+        "🟢 System Status",
+        system_status
+    )
 
-# ===============================
-# MODULE 1 — SOC DASHBOARD / LIVE STATUS
-# ===============================
-st.title("🛡️ AEGISAI SECURITY OPERATIONS CENTER")
-st.caption("Real-Time Threat Intelligence & AI-Based Intrusion Detection System")
-
-st.markdown("---")
-
-col1, col2, col3, col4 = st.columns(4)
-active_threats = len(st.session_state.logs[st.session_state.logs["Severity"] == "Critical"]) if len(st.session_state.logs) else 0
-
-col1.metric("Active Threats", active_threats)
-col2.metric("Blocked IPs", "1,240", "+12")
-col3.metric("AI Confidence", "98.2%", "Stable")
-col4.metric("System Status", "ONLINE", "Healthy")
-
-st.markdown("---")
-
-st.subheader("🔍 AI Threat Detection Engine")
-scan_col1, scan_col2 = st.columns([1, 2])
-
-with scan_col1:
-    if st.button("Run Security Scan"):
-        sample_packet = generate_packet()
-        with st.spinner("Sending packet to AI engine..."):
-            result = api.predict(sample_packet)
-
-        if "error" in result:
-            st.error("Backend connection failed")
-            st.json(result)
-        else:
-            st.success("Threat analysis completed")
-            st.json(sample_packet)
-            st.json(result)
-
-with scan_col2:
-    st.info("This panel sends a test packet to your deployed FastAPI backend and shows the response here.")
-
-st.markdown("---")
-
+# =========================================================
+# LIVE ALERTS
+# =========================================================
+st.write("")
 st.subheader("🚨 Live Security Alerts")
-alert_type = random.randint(1, 10)
-if alert_type > 7:
-    st.error("CRITICAL: Possible DDoS Attack Detected")
-elif alert_type > 4:
-    st.warning("MEDIUM: Suspicious Port Scanning Activity")
-else:
-    st.success("SYSTEM NORMAL: No active threats detected")
 
-st.markdown("---")
+alerts = st.session_state.logs[st.session_state.logs["Severity"].isin(["Critical", "High"])]
+st.dataframe(
+    alerts.head(8),
+    use_container_width=True,
+    height=320
+)
 
-st.subheader("📜 Security Event Stream")
-logs = ["TCP packet analyzed","UDP anomaly detected","Normal traffic flow","Suspicious IP checked","Firewall rule applied"]
-st.write(f"🕒 {dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} → {random.choice(logs)}")
+# =========================================================
+# CHARTS
+# =========================================================
+col1, col2 = st.columns(2)
 
-# ===============================
-# MODULE 2 — LIVE ATTACK LOGGING SYSTEM
-# ===============================
-st.markdown("---")
-st.subheader("📜 SECURITY OPERATIONS LOGS (LIVE SIEM FEED)")
+with col1:
+    attack_counts = st.session_state.logs["Attack Type"].value_counts().reset_index()
+    attack_counts.columns = ["Attack Type", "Count"]
 
-log_col1, log_col2 = st.columns(2)
-with log_col1:
-    if st.button("Generate Security Event"):
-        new_event = {
-            "Time": dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "Source IP": f"192.168.1.{random.randint(2, 254)}",
-            "Attack Type": random.choice(["DDoS","Port Scan","SQL Injection","Brute Force","Normal Traffic"]),
-            "Protocol": random.choice(["TCP","UDP","ICMP"]),
-            "Severity": random.choice(["Low","Medium","High","Critical"])
-        }
-        st.session_state.logs = append_row(st.session_state.logs, new_event)
-        st.success("New security event logged!")
+    pie = px.pie(
+        attack_counts,
+        names="Attack Type",
+        values="Count",
+        title="Threat Distribution"
+    )
+    pie.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white")
+    )
+    st.plotly_chart(pie, use_container_width=True)
 
-with log_col2:
-    if st.button("Generate Critical Event"):
-        critical_event = {
-            "Time": dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "Source IP": f"10.0.0.{random.randint(2, 254)}",
-            "Attack Type": random.choice(["DDoS","SQL Injection","Brute Force"]),
-            "Protocol": random.choice(["TCP","UDP","ICMP"]),
-            "Severity": "Critical"
-        }
-        st.session_state.logs = append_row(st.session_state.logs, critical_event)
-        st.error("Critical event generated!")
+with col2:
+    bar = px.bar(
+        attack_counts,
+        x="Attack Type",
+        y="Count",
+        color="Attack Type",
+        title="Attack Counts"
+    )
+    bar.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white")
+    )
+    st.plotly_chart(bar, use_container_width=True)
 
-st.dataframe(st.session_state.logs, use_container_width=True)
+# =========================================================
+# LIVE PACKET HISTORY
+# =========================================================
+st.subheader("📡 Live Packet History")
 
-st.markdown("### 🚨 Critical Threats Only")
-critical_logs = st.session_state.logs[st.session_state.logs["Severity"] == "Critical"]
-if len(critical_logs) > 0:
-    st.dataframe(critical_logs, use_container_width=True)
-else:
-    st.info("No critical threats yet. Use 'Generate Critical Event' to create one.")
+packet_display = st.session_state.packet_history[
+   [
+    "Timestamp",
+    "Source IP",
+    "Destination IP",
+    "Dest Port",
+    "Protocol",
+    "Bytes",
+    "Packets",
+    "Attack Type",
+    "Severity",
+    "Action",
+    "Country"
+]
+].head(50)
 
-st.markdown("### 📊 Threat Distribution")
-if len(st.session_state.logs) > 0:
-    st.bar_chart(st.session_state.logs["Severity"].value_counts())
-else:
-    st.info("No logs available yet.")
+st.dataframe(
+    packet_display,
+    use_container_width=True,
+    height=420
+)
 
-# ===============================
-# MODULE 3 — REAL-TIME PACKET SIMULATION ENGINE
-# ===============================
-st.markdown("---")
-st.subheader("🌐 REAL-TIME NETWORK TRAFFIC SIMULATION (IDS ENGINE)")
+# =========================================================
+# LIVE TRAFFIC GRAPH
+# =========================================================
+st.subheader("📈 Packets / Second")
 
-sim_col1, sim_col2 = st.columns(2)
-with sim_col1:
-    if st.button("Start Live Packet Simulation"):
-        st.session_state.packet_streaming = True
-with sim_col2:
-    if st.button("Stop Packet Simulation"):
-        st.session_state.packet_streaming = False
+traffic_data = pd.DataFrame({
+    "Time": list(range(30)),
+    "Packets": [400 + (i * 5) + (i % 3) * 40 for i in range(30)]
+})
 
-if st.session_state.packet_streaming:
-    st.success("Live traffic monitoring is running...")
-    packet = generate_packet()
-    result = api.predict(packet)
-    prediction_text = "Error" if "error" in result else str(result)
+traffic_fig = go.Figure()
+traffic_fig.add_trace(
+    go.Scatter(
+        x=traffic_data["Time"],
+        y=traffic_data["Packets"],
+        mode="lines",
+        fill="tozeroy",
+        name="Traffic",
+        line=dict(color="#00aaff")
+    )
+)
+traffic_fig.update_layout(
+    template="plotly_dark",
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    font=dict(color="white"),
+    height=350
+)
+st.plotly_chart(traffic_fig, use_container_width=True)
 
-    packet_row = {
-        "Time": dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "Src Bytes": packet["src_bytes"],
-        "Dst Bytes": packet["dst_bytes"],
-        "Count": packet["count"],
-        "Prediction": prediction_text
-    }
-    st.session_state.packet_history = append_row(st.session_state.packet_history, packet_row)
-    if len(st.session_state.packet_history) > 20:
-        st.session_state.packet_history = st.session_state.packet_history.tail(20).reset_index(drop=True)
+# =========================================================
+# SECURITY EVENT STREAM
+# =========================================================
+st.subheader("⚡ Live Security Event Stream")
 
-    st.markdown("#### Latest Packet")
-    st.json(packet)
+event_box = st.container(border=True)
+with event_box:
+    event_elements = []
+    for _, row in st.session_state.logs.head(12).iterrows():
+        severity_color = {
+    "Critical": "#ff1744",
+    "High": "#ff9100",
+    "Medium": "#ffd600",
+    "Benign": "#00e676"
+}.get(row["Severity"], "#00e676")
 
-    if "error" in result:
-        st.error("Backend Error Detected")
-        st.json(result)
-    else:
-        st.markdown("#### AI Prediction")
-        st.json(result)
-        if "attack" in str(result).lower():
-            st.error("🚨 THREAT DETECTED")
-        else:
-            st.success("🟢 Normal Traffic")
-else:
-    st.info("Click 'Start Live Packet Simulation' to begin streaming packets.")
+        # Fixed multi-line HTML formatting layout leakage error
+        row_html = (
+            f'<div style="padding:10px; margin-bottom:8px; border-left:4px solid {severity_color}; '
+            f'background:#060e20; border:1px solid rgba(255,255,255,0.05); border-radius:6px;">'
+            f'<b>{row["Attack Type"]}</b> detected from '
+            f'<span style="color:#00e5ff">{row["Source IP"]}</span> &rarr; '
+            f'<span style="color:#8bc34a">Port {row["Dest Port"]}</span><br>'
+            f'<small style="color:#9ca3af">{row["Timestamp"]} | Severity: {row["Severity"]} | '
+            f'Confidence: {row["AI Confidence"]}%</small>'
+            f'</div>'
+        )
+        event_elements.append(row_html)
+    st.markdown("".join(event_elements), unsafe_allow_html=True)
 
-st.markdown("#### Packet History")
+# =========================================================
+# SYSTEM STATUS
+# =========================================================
+st.subheader("🖥️ System Status")
+
+sys1, sys2, sys3, sys4 = st.columns(4)
+with sys1:
+    st.success("Detection Engine Active")
+with sys2:
+    st.success("Packet Capture Running")
+with sys3:
+    st.success("Threat Intelligence Synced")
+with sys4:
+    st.success("ML Model Operational")

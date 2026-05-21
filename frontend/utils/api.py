@@ -1,7 +1,20 @@
+# frontend/utils/api.py
+
 import requests
+import os
 
-API_URL = "http://127.0.0.1:8000"
+# =========================================================
+# API URL
+# =========================================================
 
+API_URL = os.getenv(
+    "AEGISAI_API_URL",
+    "http://127.0.0.1:8000"
+)
+
+# =========================================================
+# HEALTH CHECK
+# =========================================================
 
 def check_health():
 
@@ -18,14 +31,16 @@ def check_health():
 
         return False
 
+# =========================================================
+# PREDICT
+# =========================================================
 
-def predict(data):
+def predict(data=None):
 
     try:
 
-        response = requests.post(
+        response = requests.get(
             f"{API_URL}/predict",
-            json=data,
             timeout=5
         )
 

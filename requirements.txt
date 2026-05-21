@@ -79,3 +79,6 @@ uvicorn==0.40.0
 watchdog==6.0.0
 webencodings==0.5.1
 websockets==16.0
+
+pydeck
+streamlit-autorefresh
