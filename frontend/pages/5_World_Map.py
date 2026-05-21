@@ -8,6 +8,21 @@ from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
 
 # =========================================================
+# UNIVERSAL SESSION STATE FALLBACK ENGINE
+# =========================================================
+if "logs" not in st.session_state:
+    st.session_state.logs = pd.DataFrame()
+
+if "packet_history" not in st.session_state:
+    st.session_state.packet_history = pd.DataFrame()
+
+if "blocked_ips" not in st.session_state:
+    st.session_state.blocked_ips = set()
+
+if "initialized" not in st.session_state:
+    st.session_state.initialized = True
+
+# =========================================================
 # PAGE CONFIGURATION
 # =========================================================
 st.set_page_config(
@@ -20,19 +35,17 @@ st.set_page_config(
 # INITIALIZE NAVIGATION & ZOOM CONTROLS IN SESSION STATE
 # =========================================================
 if 'map_zoom' not in st.session_state:
-    st.session_state.map_zoom = 0.65
+    st.session_state.map_zoom = 0.9
 
 if 'map_pitch' not in st.session_state:
-    st.session_state.map_pitch = 38
+    st.session_state.map_pitch = 55
 
 if 'deg_spin' not in st.session_state:
     st.session_state.deg_spin = 0
 else:
-    # Continuously rotate map if globe view is active
     if st.session_state.get('auto_rotate', True):
         st.session_state.deg_spin = (st.session_state.deg_spin + 3) % 360
 
-# Safe conversion calculation for Pydeck wrap limits
 bound_longitude = (st.session_state.deg_spin + 180 % 360) - 180
 
 # =========================================================
@@ -81,6 +94,16 @@ section[data-testid="stSidebar"] {
     text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
 }
 
+.cyber-caption {
+    position: fixed;
+    top: 55px;
+    left: 40px;
+    z-index: 9999;
+    color: #627d98;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
 .corner-feed {
     position: fixed; 
     bottom: 95px; 
@@ -88,7 +111,6 @@ section[data-testid="stSidebar"] {
     width: 420px;
     background: rgba(2, 6, 16, 0.85); 
     backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
     border: 1px solid rgba(0, 255, 255, 0.25); 
     border-radius: 4px;
     padding: 20px; 
@@ -112,7 +134,6 @@ section[data-testid="stSidebar"] {
 .feed-text { color: #d1e2eb; font-size: 12px; line-height: 1.4; }
 .feed-meta { color: #627d98; font-size: 11px; margin-top: 2px; }
 
-/* Fixed Control Column Button Triggers styling override */
 .control-rack {
     position: fixed;
     top: 30px;
@@ -131,17 +152,9 @@ section[data-testid="stSidebar"] {
     color: #00ffff !important;
     border-radius: 4px !important;
     font-size: 16px !important;
-    padding: 0 !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
-    transition: all 0.2s;
-}
-
-.stButton > button:hover {
-    background: rgba(0, 255, 255, 0.25) !important;
-    border-color: #00ffff !important;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5) !important;
 }
 
 .bottom-hud {
@@ -155,7 +168,6 @@ section[data-testid="stSidebar"] {
     z-index: 9999;
     backdrop-filter: blur(15px);
     border-radius: 4px;
-    box-shadow: 0 0 25px rgba(0,0,0,0.6);
 }
 
 .hud-btn { padding: 12px 28px; color: #486581; font-size: 12px; font-weight: 600; border-right: 1px solid rgba(255, 255, 255, 0.08); letter-spacing: 1.5px; }
@@ -170,27 +182,21 @@ section[data-testid="stSidebar"] {
 """, unsafe_allow_html=True)
 
 # =========================================================
-# GLOBAL STREAM TIMING (1.5s Interval Refresh)
+# GLOBAL RUNTIME MULTI-REFRESH ENGINE (Every 1 Second)
 # =========================================================
-st_autorefresh(interval=1500, key="aegis_runtime_engine")
+st_autorefresh(interval=1000, key="aegis_runtime_engine")
 
 # =========================================================
-# THREAT ARRAYS: EXTENDED TO 10 GLOBAL ACTIVE COUNTRIES
+# THREAT ARRAYS GENERATOR
 # =========================================================
 def generate_broad_telemetry():
     countries = {
-        "USA": [37.0902, -95.7129],
-        "China": [35.8617, 104.1954], 
-        "Russia": [61.5240, 105.3188], 
-        "India": [20.5937, 78.9629],
-        "Brazil": [-14.2350, -51.9253], 
-        "UK": [55.3781, -3.4360],
-        "Japan": [36.2048, 138.2529], 
-        "South Africa": [-30.5595, 22.9375],
-        "Germany": [51.1657, 10.4515], 
-        "Australia": [-25.2744, 133.7751]
+        "USA": [37.0902, -95.7129], "China": [35.8617, 104.1954], 
+        "Russia": [61.5240, 105.3188], "India": [20.5937, 78.9629],
+        "Brazil": [-14.2350, -51.9253], "UK": [55.3781, -3.4360],
+        "Japan": [36.2048, 138.2529], "South Africa": [-30.5595, 22.9375],
+        "Germany": [51.1657, 10.4515], "Australia": [-25.2744, 133.7751]
     }
-    
     detections = {
         "MAV": {"color": [255, 85, 0], "name": "Trojan.Win32.Generic"},
         "WAV": {"color": [0, 170, 255], "name": "HEUR:Exploit.Script"},
@@ -199,14 +205,14 @@ def generate_broad_telemetry():
     }
     
     pillars = []
-    for _ in range(180): # Densified cluster nodes
+    for _ in range(320):
         country = np.random.choice(list(countries.keys()))
         dtype = np.random.choice(list(detections.keys()))
         lat, lon = countries[country]
         pillars.append({
-            "lat": lat + np.random.uniform(-4.5, 4.5),
-            "lon": lon + np.random.uniform(-4.5, 4.5),
-            "elevation": np.random.randint(250000, 3400000),
+            "lat": lat + np.random.uniform(-5.5, 5.5),
+            "lon": lon + np.random.uniform(-5.5, 5.5),
+            "elevation": np.random.randint(600000, 6000000),
             "detection_type": dtype,
             "color_r": detections[dtype]["color"][0],
             "color_g": detections[dtype]["color"][1],
@@ -214,28 +220,26 @@ def generate_broad_telemetry():
         })
         
     arcs = []
-    for _ in range(35): # Expanded tracking paths across all 10 countries
+    for _ in range(80):
         src, dst = np.random.choice(list(countries.keys()), 2, replace=False)
         dtype = np.random.choice(list(detections.keys()))
         arcs.append({
             "src_lat": countries[src][0], "src_lon": countries[src][1],
             "dst_lat": countries[dst][0], "dst_lon": countries[dst][1],
-            "detection_type": dtype,
-            "attack_name": detections[dtype]["name"],
+            "detection_type": dtype, "attack_name": detections[dtype]["name"],
             "src_country": src, "dst_country": dst,
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "color_r": detections[dtype]["color"][0],
             "color_g": detections[dtype]["color"][1],
             "color_b": detections[dtype]["color"][2],
-            "width": np.random.randint(2, 6)
+            "width": np.random.randint(2, 5)
         })
-        
     return pd.DataFrame(pillars), pd.DataFrame(arcs)
 
 df_pillars, df_arcs = generate_broad_telemetry()
 
 # =========================================================
-# INTERACTIVE BUTTON HANDLERS (Alters view state on loop)
+# INTERACTIVE BUTTON HANDLERS
 # =========================================================
 def toggle_rotation():
     st.session_state.auto_rotate = not st.session_state.get('auto_rotate', True)
@@ -246,7 +250,6 @@ def trigger_zoom_in():
 def trigger_zoom_out():
     st.session_state.map_zoom = max(st.session_state.map_zoom - 0.15, 0.35)
 
-# Render operational state buttons behind stylized structural wrappers
 with st.container():
     st.markdown('<div class="control-rack">', unsafe_allow_html=True)
     st.button("🌐", on_click=toggle_rotation, key="btn_rot")
@@ -255,55 +258,32 @@ with st.container():
     st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# PYDECK SPATIAL VISUALIZATION LAYERS
+# PYDECK SPATIAL MAP VISUALIZATION LAYERS
 # =========================================================
 geojson_map_url = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson"
 
 world_topology = pdk.Layer(
-    "GeoJsonLayer",
-    geojson_map_url,
-    stroked=True,
-    filled=True,
-    get_line_color=[0, 255, 255, 35], 
-    get_fill_color=[6, 16, 38, 160],  
-    line_width_min_pixels=1,
+    "GeoJsonLayer", geojson_map_url, stroked=True, filled=True,
+    get_line_color=[0, 255, 255, 35], get_fill_color=[6, 16, 38, 160], line_width_min_pixels=1,
 )
 
 pillar_layer = pdk.Layer(
-    "ColumnLayer",
-    data=df_pillars,
-    get_position=["lon", "lat"],
-    get_elevation="elevation",
-    elevation_scale=1,
-    radius=85000,
-    get_fill_color=["color_r", "color_g", "color_b", 200],
+    "ColumnLayer", data=df_pillars, get_position=["lon", "lat"], get_elevation="elevation",
+    elevation_scale=1, radius=120000, get_fill_color="[color_r, color_g, color_b, 200]",
 )
 
 arc_layer = pdk.Layer(
-    "ArcLayer",
-    data=df_arcs,
-    get_source_position=["src_lon", "src_lat"],
-    get_target_position=["dst_lon", "dst_lat"],
-    get_source_color=["color_r", "color_g", "color_b", 80],
-    get_target_color=["color_r", "color_g", "color_b", 240],
-    get_width="width",
+    "ArcLayer", data=df_arcs, get_source_position=["src_lon", "src_lat"], get_target_position=["dst_lon", "dst_lat"],
+    get_source_color="[color_r, color_g, color_b, 80]", get_target_color="[color_r, color_g, color_b, 255]", get_width="width",
 )
 
-# ViewState reads properties from live updated Session State configurations
 view_matrix = pdk.ViewState(
-    latitude=22, 
-    longitude=bound_longitude, 
-    zoom=st.session_state.map_zoom, 
-    pitch=st.session_state.map_pitch, 
-    bearing=5
+    latitude=22, longitude=bound_longitude, zoom=st.session_state.map_zoom, pitch=st.session_state.map_pitch, bearing=5
 )
 
 deck_canvas = pdk.Deck(
-    layers=[world_topology, pillar_layer, arc_layer],
-    initial_view_state=view_matrix,
-    map_provider=None, 
-    views=[pdk.View(type="GlobeView", controller=False)],
-    parameters={"blend": True}
+    layers=[world_topology, pillar_layer, arc_layer], initial_view_state=view_matrix,
+    map_provider=None, views=[pdk.View(type="GlobeView", controller=False)]
 )
 
 st.pydeck_chart(deck_canvas, use_container_width=True, height=940)
@@ -312,17 +292,27 @@ st.pydeck_chart(deck_canvas, use_container_width=True, height=940)
 # TITLE & TELEMETRY LIVE TICKER INJECTIONS
 # =========================================================
 st.markdown('<div class="cyber-header">☰ AEGIS.AI // LIVE THREAT TELEMETRY</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="cyber-caption">Global Threat Feed Active • {datetime.now().strftime("%H:%M:%S UTC")}</div>', unsafe_allow_html=True)
 
+# Secure Ticker HTML Build
 html_ticker_accumulator = '<div class="corner-feed"><div class="feed-title">REALTIME DETECTION ENGINE</div>'
-for _, entry in df_arcs.head(6).iterrows():
-    rgb_string = f"rgb({int(entry['color_r'])}, {int(entry['color_g'])}, {int(entry['color_b'])})"
+for _, entry in df_arcs.head(5).iterrows():
+    attack_name = entry.get("attack_name", "Unknown Threat")
+    timestamp = entry.get("timestamp", "N/A")
+    src_country = entry.get("src_country", "Unknown Source")
+    dst_country = entry.get("dst_country", "Unknown Destination")
+    
+    color_r = int(entry.get("color_r", 0))
+    color_g = int(entry.get("color_g", 255))
+    color_b = int(entry.get("color_b", 255))
+    rgb_string = f"rgb({color_r}, {color_g}, {color_b})"
     
     html_ticker_accumulator += (
         f'<div class="feed-item">'
         f'  <div class="feed-dot" style="background:{rgb_string}; color:{rgb_string};"></div>'
         f'  <div class="feed-text">'
-        f'    <strong>{str(entry["attack_name"])}</strong><br>'
-        f'    <div class="feed-meta">{str(entry["timestamp"])} | {str(entry["src_country"])} &rarr; {str(entry["dst_country"])} [{str(entry["detection_type"])}]</div>'
+        f'    <strong>{str(attack_name)}</strong><br>'
+        f'    <div class="feed-meta">{str(timestamp)} | {str(src_country)} to {str(dst_country)}</div>'
         f'  </div>'
         f'</div>'
     )

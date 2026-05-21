@@ -11,6 +11,21 @@ from streamlit_autorefresh import st_autorefresh
 from utils.styles import load_css
 
 # =========================================================
+# UNIVERSAL SESSION STATE FALLBACK ENGINE
+# =========================================================
+if "logs" not in st.session_state or st.session_state.logs.empty:
+    st.session_state.logs = pd.DataFrame(columns=["Timestamp", "Source IP", "Destination IP", "Destination Port", "Protocol", "Bytes", "Attack Type", "Severity", "AI Confidence"])
+
+if "packet_history" not in st.session_state or st.session_state.packet_history.empty:
+    st.session_state.packet_history = pd.DataFrame(columns=["Timestamp", "Source IP", "Destination IP", "Destination Port", "Protocol", "Bytes", "Attack Type", "Severity", "AI Confidence"])
+
+if "blocked_ips" not in st.session_state:
+    st.session_state.blocked_ips = set()
+
+if "initialized" not in st.session_state:
+    st.session_state.initialized = True
+
+# =========================================================
 # PAGE CONFIG
 # =========================================================
 st.set_page_config(
@@ -36,18 +51,6 @@ html, body, [class*="css"] {
 }
 </style>
 """, unsafe_allow_html=True)
-
-# =========================================================
-# SESSION STATE INIT
-# =========================================================
-if "logs" not in st.session_state or st.session_state.logs.empty:
-    st.session_state.logs = pd.DataFrame(columns=["Timestamp", "Source IP", "Destination IP", "Destination Port", "Protocol", "Bytes", "Attack Type", "Severity", "AI Confidence"])
-
-if "packet_history" not in st.session_state or st.session_state.packet_history.empty:
-    st.session_state.packet_history = pd.DataFrame(columns=["Timestamp", "Source IP", "Destination IP", "Destination Port", "Protocol", "Bytes", "Attack Type", "Severity", "AI Confidence"])
-
-if "blocked_ips" not in st.session_state:
-    st.session_state.blocked_ips = set()
 
 # =========================================================
 # AUTO REFRESH (Synced Engine)

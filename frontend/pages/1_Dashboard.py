@@ -11,7 +11,7 @@ import random
 from datetime import datetime
 
 # =========================================================
-# SESSION STATE INIT
+# UNIVERSAL SESSION STATE FALLBACK ENGINE
 # =========================================================
 if "logs" not in st.session_state:
     st.session_state.logs = pd.DataFrame()
@@ -21,6 +21,9 @@ if "packet_history" not in st.session_state:
 
 if "blocked_ips" not in st.session_state:
     st.session_state.blocked_ips = set()
+
+if "initialized" not in st.session_state:
+    st.session_state.initialized = True
 
 # =========================================================
 # PAGE CONFIG
@@ -84,13 +87,13 @@ if "dashboard_initialized" not in st.session_state:
 # =========================================================
 # GENERATE INITIAL DATA
 # =========================================================
-if not st.session_state.dashboard_initialized:
+if not st.session_state.dashboard_initialized or st.session_state.logs.empty:
     initial_events = []
     for _ in range(120):
         event = generate_event()
         initial_events.append(event)
-        if event["Severity"] == "Critical":
-            st.session_state.blocked_ips.add(event["Source IP"])
+        if event.get("Severity") == "Critical":
+            st.session_state.blocked_ips.add(event.get("Source IP"))
     initial_df = pd.DataFrame(initial_events)
     st.session_state.logs = initial_df.copy()
     st.session_state.packet_history = initial_df.copy()
@@ -102,17 +105,14 @@ if not st.session_state.dashboard_initialized:
 new_event = generate_event()
 new_df = pd.DataFrame([new_event])
 
-# Add new event to logs
 st.session_state.logs = pd.concat([new_df, st.session_state.logs], ignore_index=True)
 st.session_state.packet_history = pd.concat([new_df, st.session_state.packet_history], ignore_index=True)
 
-# Keep only latest rows
 st.session_state.logs = st.session_state.logs.head(500)
 st.session_state.packet_history = st.session_state.packet_history.head(500)
 
-# Auto block critical IPs
-if new_event["Severity"] == "Critical":
-    st.session_state.blocked_ips.add(new_event["Source IP"])
+if new_event.get("Severity") == "Critical":
+    st.session_state.blocked_ips.add(new_event.get("Source IP"))
 
 # =========================================================
 # HEADER
@@ -172,7 +172,11 @@ with m4:
 st.write("")
 st.subheader("🚨 Live Security Alerts")
 
-alerts = st.session_state.logs[st.session_state.logs["Severity"].isin(["Critical", "High"])]
+if not st.session_state.logs.empty and "Severity" in st.session_state.logs.columns:
+    alerts = st.session_state.logs[st.session_state.logs["Severity"].isin(["Critical", "High"])]
+else:
+    alerts = pd.DataFrame()
+
 st.dataframe(
     alerts.head(8),
     use_container_width=True,
@@ -185,8 +189,11 @@ st.dataframe(
 col1, col2 = st.columns(2)
 
 with col1:
-    attack_counts = st.session_state.logs["Attack Type"].value_counts().reset_index()
-    attack_counts.columns = ["Attack Type", "Count"]
+    if not st.session_state.logs.empty and "Attack Type" in st.session_state.logs.columns:
+        attack_counts = st.session_state.logs["Attack Type"].value_counts().reset_index()
+        attack_counts.columns = ["Attack Type", "Count"]
+    else:
+        attack_counts = pd.DataFrame(columns=["Attack Type", "Count"])
 
     pie = px.pie(
         attack_counts,
@@ -223,21 +230,17 @@ with col2:
 # =========================================================
 st.subheader("📡 Live Packet History")
 
-packet_display = st.session_state.packet_history[
-   [
-    "Timestamp",
-    "Source IP",
-    "Destination IP",
-    "Dest Port",
-    "Protocol",
-    "Bytes",
-    "Packets",
-    "Attack Type",
-    "Severity",
-    "Action",
-    "Country"
+available_cols = list(st.session_state.packet_history.columns)
+target_cols = [
+    "Timestamp", "Source IP", "Destination IP", "Dest Port", "Protocol", 
+    "Bytes", "Packets", "Attack Type", "Severity", "Action", "Country"
 ]
-].head(50)
+valid_cols = [col for col in target_cols if col in available_cols]
+
+if valid_cols:
+    packet_display = st.session_state.packet_history[valid_cols].head(50)
+else:
+    packet_display = st.session_state.packet_history.head(50)
 
 st.dataframe(
     packet_display,
@@ -284,22 +287,28 @@ event_box = st.container(border=True)
 with event_box:
     event_elements = []
     for _, row in st.session_state.logs.head(12).iterrows():
-        severity_color = {
-    "Critical": "#ff1744",
-    "High": "#ff9100",
-    "Medium": "#ffd600",
-    "Benign": "#00e676"
-}.get(row["Severity"], "#00e676")
+        current_sev = row.get("Severity", "Benign")
+        attack_type = row.get("Attack Type", "Unknown")
+        source_ip = row.get("Source IP", "0.0.0.0")
+        dest_port = row.get("Dest Port", row.get("Destination Port", "N/A"))
+        timestamp = row.get("Timestamp", "N/A")
+        confidence = row.get("AI Confidence", "100")
 
-        # Fixed multi-line HTML formatting layout leakage error
+        severity_color = {
+            "Critical": "#ff1744",
+            "High": "#ff9100",
+            "Medium": "#ffd600",
+            "Benign": "#00e676"
+        }.get(current_sev, "#00e676")
+
         row_html = (
             f'<div style="padding:10px; margin-bottom:8px; border-left:4px solid {severity_color}; '
             f'background:#060e20; border:1px solid rgba(255,255,255,0.05); border-radius:6px;">'
-            f'<b>{row["Attack Type"]}</b> detected from '
-            f'<span style="color:#00e5ff">{row["Source IP"]}</span> &rarr; '
-            f'<span style="color:#8bc34a">Port {row["Dest Port"]}</span><br>'
-            f'<small style="color:#9ca3af">{row["Timestamp"]} | Severity: {row["Severity"]} | '
-            f'Confidence: {row["AI Confidence"]}%</small>'
+            f'<b>{str(attack_type)}</b> detected from '
+            f'<span style="color:#00e5ff">{str(source_ip)}</span> &arr; '
+            f'<span style="color:#8bc34a">Port {str(dest_port)}</span><br>'
+            f'<small style="color:#9ca3af">{str(timestamp)} | Severity: {str(current_sev)} | '
+            f'Confidence: {str(confidence)}%</small>'
             f'</div>'
         )
         event_elements.append(row_html)
