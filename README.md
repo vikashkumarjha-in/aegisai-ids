@@ -82,29 +82,29 @@ The system is designed as a realistic cybersecurity portfolio project, fully con
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │              Streamlit Frontend (Port 8501)              │   │
-│  │  ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌──────────┐  │   │
-│  │  │  Home /  │ │ Dashboard │ │  Threat  │ │  World   │  │   │
-│  │  │   SOC    │ │  Metrics  │ │ Analysis │ │   Map    │  │   │
-│  │  └────┬─────┘ └─────┬─────┘ └────┬─────┘ └────┬─────┘  │   │
-│  │       └─────────────┴────────────┴─────────────┘        │   │
+│  │  ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌──────────┐    │   │
+│  │  │  Home /  │ │ Dashboard │ │  Threat  │ │  World   │    │   │
+│  │  │   SOC    │ │  Metrics  │ │ Analysis │ │   Map    │    │   │
+│  │  └────┬─────┘ └─────┬─────┘ └────┬─────┘ └────┬─────┘    │   │
+│  │       └─────────────┴────────────┴─────────────┘         │   │
 │  │                    utils/api.py                          │   │
 │  └────────────────────────┬─────────────────────────────────┘   │
 │                           │ HTTP (REST)                         │
 │  ┌────────────────────────▼─────────────────────────────────┐   │
-│  │              FastAPI Backend (Port 8000)                  │   │
-│  │   GET /health    GET /predict    GET /                    │   │
-│  │              alert_logic.py · schemas.py                  │   │
+│  │              FastAPI Backend (Port 8000)                 │   │
+│  │   GET /health    GET /predict    GET /                   │   │
+│  │              alert_logic.py · schemas.py                 │   │
 │  └────────────────────────┬─────────────────────────────────┘   │
 │                           │                                     │
 │  ┌────────────────────────▼─────────────────────────────────┐   │
-│  │                    ML Pipeline                            │   │
+│  │                    ML Pipeline                           │   │
 │  │  preprocess_nslkdd.py → feature_engineering.py           │   │
 │  │  train_model.py → model_registry.py → models/*.pkl       │   │
 │  │  evaluate_model.py · validate.py · compare.py            │   │
 │  └────────────────────────┬─────────────────────────────────┘   │
 │                           │                                     │
 │  ┌────────────────────────▼─────────────────────────────────┐   │
-│  │                     Data Layer                            │   │
+│  │                     Data Layer                           │   │
 │  │  data/nslkdd/KDDTrain+.txt  ·  data/processed_nslkdd.csv │   │
 │  │  models/experiments.csv     ·  logs/audit.csv            │   │
 │  └──────────────────────────────────────────────────────────┘   │
