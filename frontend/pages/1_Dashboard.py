@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from streamlit_autorefresh import st_autorefresh
-from utils.styles import load_css
+
 from utils.data_generator import generate_event
 import random
 from datetime import datetime

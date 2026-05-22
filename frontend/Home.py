@@ -7,6 +7,7 @@ import numpy as np
 from streamlit_autorefresh import st_autorefresh
 from datetime import datetime, timedelta
 import random
+current_time = datetime.now().strftime("%d %b %Y | %H:%M:%S")
 
 # =========================================================
 # PAGE CONFIG
@@ -238,6 +239,12 @@ header, footer, #MainMenu {
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
+            
+            height: 150px;
+            display:  flex:
+            flex-direction: column:
+            justify-content: center:
+
 }
 
 .module-tile:hover {
@@ -262,12 +269,14 @@ with st.sidebar:
 # =========================================================
 # SOC PLATFORM HEADER OVERLAY
 # =========================================================
-st.markdown("""
+st.markdown(f"""
 <div class="hero-wrapper">
     <div class="hero-title">🛡️ AEGIS.AI SYSTEM DASHBOARD</div>
+
     <div class="hero-subtitle">
         <span class="live-indicator"></span>
-        Core SOC Monitoring Hub // Engine Operations Network Telemetry
+        LIVE SECURITY OPERATIONS CENTER |
+        {current_time} UTC
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -378,8 +387,10 @@ with right_pane:
         target_country = random.choice([c for c in global_regions if c != origin_country])
         
         timestamp_string = (
-            datetime.now() - timedelta(seconds=index * random.randint(15, 40))
-        ).strftime("%H:%M:%S")
+    datetime.now() - timedelta(
+        seconds=random.randint(2, 180)
+    )
+).strftime("%H:%M:%S")
 
         # Severity Assessment
         if selected_attack in ["DDoS Mitigation", "Network Infiltration"]:
