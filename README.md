@@ -1,8 +1,7 @@
 <div align="center">
 
 # 🛡️ AegisAI IDS
-
-### AI-Powered Intrusion Detection System
+### AI-Powered Intrusion Detection System & SOC Command Center
 
 ![Python](https://img.shields.io/badge/Python-3.11.9-3776AB?style=flat-square&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.128.0-009688?style=flat-square&logo=fastapi&logoColor=white)
@@ -13,13 +12,16 @@
 
 **AegisAI** is a hybrid, AI-powered Intrusion Detection System that combines machine learning classification with rule-based analysis to detect and visualize network intrusions in real time.
 
-[🚀 Live Demo][Insert Link Here] · [📖 API Docs][Insert Link Here] · [📊 Documentation][Insert Link Here]
+[🚀 Deployed Live UI](https://aegisai-ids.onrender.com) · [📖 Interactive API Docs](https://aegisai-api.onrender.com/docs) · [📊 System Documentation](docs/architecture.md)
 
 ---
 
-![AegisAI Dashboard Preview](docs/assets/dashboard_preview.png)
+### 🖥️ SIEM Dashboard Operations Environment
+<img src="docs/assets/dashboard_preview.png" alt="AegisAI Cyberpunk Operational Console Screen" width="950">
 
 </div>
+
+---
 
 ---
 

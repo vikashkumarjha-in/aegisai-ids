@@ -6,9 +6,15 @@ import plotly.express as px
 import numpy as np
 import pandas as pd
 import random
+import sys
+from pathlib import Path
 from datetime import datetime
 from streamlit_autorefresh import st_autorefresh
 
+# Append root paths safely
+frontend_root = str(Path(__file__).resolve().parents[1])
+if frontend_root not in sys.path:
+    sys.path.append(frontend_root)
 
 # =========================================================
 # UNIVERSAL SESSION STATE FALLBACK ENGINE
@@ -33,8 +39,6 @@ st.set_page_config(
     layout="wide"
 )
 
-load_css()
-
 # Inject consistent cyberpunk theme styling
 st.markdown("""
 <style>
@@ -48,6 +52,10 @@ html, body, [class*="css"] {
         radial-gradient(circle at 85% 15%, rgba(0, 170, 255, 0.05), transparent 40%),
         radial-gradient(circle at 15% 85%, rgba(255, 0, 136, 0.04), transparent 45%),
         #030611 !important;
+}
+header, footer, #MainMenu {
+    visibility: hidden;
+    display: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -66,7 +74,7 @@ st.caption(f"Live Stream Active • {datetime.now().strftime('%H:%M:%S')}")
 st.write("")
 
 # =========================================================
-# CHARTS & telemetry OVERLAYS
+# CHARTS & TELEMETRY OVERLAYS
 # =========================================================
 threat_level = random.randint(10, 95)
 fig = go.Figure(go.Indicator(
@@ -96,7 +104,7 @@ fig.update_layout(
     height=280,
     margin=dict(l=20, r=20, t=40, b=20)
 )
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 packets = np.random.randint(100, 1000, 30)
 time_axis = list(range(30))
@@ -112,7 +120,7 @@ line_fig.update_layout(
     font=dict(color="white"),
     height=260
 )
-st.plotly_chart(line_fig, use_container_width=True)
+st.plotly_chart(line_fig, width="stretch")
 
 # ---------------------------------------------------------
 # 3D TOPOLOGY NETWORK GRAPH
@@ -140,14 +148,32 @@ network_fig.update_layout(
     font=dict(color="white"),
     height=450
 )
-st.plotly_chart(network_fig, use_container_width=True)
+st.plotly_chart(network_fig, width="stretch")
 
 # ---------------------------------------------------------
 # DATAFRAME CAPTURE LAYER
 # ---------------------------------------------------------
 st.subheader("📦 Live Packets Capture Frame")
+
+# Self-populating framework if global buffer states are clear
+if st.session_state.packet_history.empty:
+    sample_data = []
+    for i in range(10):
+        sample_data.append({
+            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "Source IP": f"192.168.1.{random.randint(10,99)}",
+            "Destination IP": "10.0.0.1",
+            "Destination Port": random.choice([80, 443, 22]),
+            "Protocol": "TCP",
+            "Bytes": random.randint(100, 1200),
+            "Attack Type": "Benign",
+            "Severity": "Low",
+            "AI Confidence": 99.1
+        })
+    st.session_state.packet_history = pd.DataFrame(sample_data)
+
 st.dataframe(
     st.session_state.packet_history.head(30),
-    use_container_width=True,
+    width="stretch",
     height=400
 )

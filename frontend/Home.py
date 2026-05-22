@@ -7,6 +7,7 @@ import numpy as np
 from streamlit_autorefresh import st_autorefresh
 from datetime import datetime, timedelta
 import random
+
 current_time = datetime.now().strftime("%d %b %Y | %H:%M:%S")
 
 # =========================================================
@@ -117,6 +118,8 @@ header, footer, #MainMenu {
     margin-top: 5px;
     text-transform: uppercase;
     letter-spacing: 1.5px;
+    display: flex;
+    align-items: center;
 }
 
 /* Immersive Neon Glass Metrics Elements */
@@ -163,7 +166,6 @@ header, footer, #MainMenu {
     border-radius: 50%;
     display: inline-block;
     margin-right: 10px;
-    vertical-align: middle;
     box-shadow: 0 0 10px #00ff88;
     animation: pulse 1.6s infinite ease-in-out;
 }
@@ -235,16 +237,16 @@ header, footer, #MainMenu {
     background: linear-gradient(145deg, rgba(6,14,32,0.8) 0%, rgba(3,6,16,0.9) 100%);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px;
-    padding: 25px 15px;
+    padding: 20px 12px;
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
-            
-            height: 150px;
-            display:  flex:
-            flex-direction: column:
-            justify-content: center:
-
+    height: 160px;               /* Strict height alignment control */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
 }
 
 .module-tile:hover {
@@ -269,17 +271,21 @@ with st.sidebar:
 # =========================================================
 # SOC PLATFORM HEADER OVERLAY
 # =========================================================
-st.markdown(f"""
-<div class="hero-wrapper">
-    <div class="hero-title">🛡️ AEGIS.AI SYSTEM DASHBOARD</div>
+current_time = datetime.now().strftime("%d %b %Y | %H:%M:%S")
 
+hero_html = f"""
+<div class="hero-wrapper">
+    <div class="hero-title">
+        🛡️ AEGIS.AI SYSTEM DASHBOARD
+    </div>
     <div class="hero-subtitle">
         <span class="live-indicator"></span>
-        LIVE SECURITY OPERATIONS CENTER |
-        {current_time} UTC
+        LIVE SECURITY OPERATIONS CENTER &nbsp;|&nbsp; {current_time} UTC
     </div>
 </div>
-""", unsafe_allow_html=True)
+"""
+
+st.markdown(hero_html, unsafe_allow_html=True)
 
 # =========================================================
 # TELEMETRY COUNTER ROW COMPONENTS
@@ -364,12 +370,12 @@ with left_pane:
 
     st.plotly_chart(
         fig,
-        use_container_width=True,
+        width="stretch",
         config={"displayModeBar": False}
     )
 
 # =========================================================
-# RIGHT PANE : LIVE TELEMETRY FEED (FIXED)
+# RIGHT PANE : LIVE TELEMETRY FEED
 # =========================================================
 with right_pane:
     st.markdown(
@@ -377,7 +383,6 @@ with right_pane:
         unsafe_allow_html=True
     )
 
-    # CRITICAL FIX: Accumulate using flat, secure linear string formats to completely prevent text markdown leaks
     feed_elements = []
     feed_elements.append('<div class="attack-feed">')
 
@@ -386,11 +391,7 @@ with right_pane:
         origin_country = random.choice(global_regions)
         target_country = random.choice([c for c in global_regions if c != origin_country])
         
-        timestamp_string = (
-    datetime.now() - timedelta(
-        seconds=random.randint(2, 180)
-    )
-).strftime("%H:%M:%S")
+        timestamp_string = (datetime.now() - timedelta(seconds=random.randint(2, 180))).strftime("%H:%M:%S")
 
         # Severity Assessment
         if selected_attack in ["DDoS Mitigation", "Network Infiltration"]:
@@ -419,7 +420,6 @@ with right_pane:
 
     feed_elements.append('</div>')
     
-    # Flatten the list structure clean into a single raw block item
     st.markdown("".join(feed_elements), unsafe_allow_html=True)
 
 # =========================================================
@@ -441,7 +441,9 @@ for column, module_info in zip(sub_columns, operational_modules):
         st.markdown(f"""
         <div class="module-tile">
             <div style="font-size:36px; margin-bottom:8px;">{module_info[0]}</div>
-            <div style="font-size:14px; font-weight:600; color:#ffffff; letter-spacing:0.5px;">{module_info[1]}</div>
-            <div style="font-size:10px; color:#486581; margin-top:4px; text-transform:uppercase;">Status: Active</div>
+            <div style="font-size:14px; font-weight:600; color:#ffffff; letter-spacing:0.5px; min-height:36px; display:flex; align-items:center; justify-content:center;">
+                {module_info[1]}
+            </div>
+            <div style="font-size:10px; color:#486581; margin-top:6px; text-transform:uppercase; font-weight:700;">Status: Active</div>
         </div>
         """, unsafe_allow_html=True)

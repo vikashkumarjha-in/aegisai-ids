@@ -4,8 +4,14 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from datetime import datetime
+import sys
+from pathlib import Path
+from datetime import datetime, timedelta
 
+# Append utility paths safely
+frontend_root = str(Path(__file__).resolve().parents[1])
+if frontend_root not in sys.path:
+    sys.path.append(frontend_root)
 
 # =========================================================
 # UNIVERSAL SESSION STATE FALLBACK ENGINE
@@ -30,8 +36,6 @@ st.set_page_config(
     layout="wide"
 )
 
-load_css()
-
 # Inject consistent cyberpunk theme styling
 st.markdown("""
 <style>
@@ -46,6 +50,10 @@ html, body, [class*="css"] {
         radial-gradient(circle at 85% 85%, rgba(0, 255, 136, 0.03), transparent 45%),
         #030611 !important;
 }
+header, footer, #MainMenu {
+    visibility: hidden;
+    display: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -58,19 +66,14 @@ st.caption(f"Analytics Updated: {datetime.now().strftime('%d %b %Y %H:%M:%S')}")
 st.write("")
 
 # =========================================================
-# TELEMETRY DATA PIPELINES
+# TELEMETRY DATA PIPELINES (DYNAMIC MAY 2026 CALCULATOR)
 # =========================================================
-attack_types = [
-    "DDoS",
-    "Port Scan",
-    "Brute Force",
-    "Web Attack",
-    "Botnet",
-    "Infiltration"
-]
+attack_types = ["DDoS", "Port Scan", "Brute Force", "Web Attack", "Botnet", "Infiltration"]
 
+# DYNAMIC DATES: Automatically anchor data range steps directly inside May 2026
+base_historical_start = datetime(2026, 5, 16)
 timeline = pd.DataFrame({
-    "Day": pd.date_range("2026-01-01", periods=7),
+    "Day": [base_historical_start + timedelta(days=x) for x in range(7)],
     "DDoS": np.random.randint(50, 200, 7),
     "Port Scan": np.random.randint(20, 120, 7),
     "Brute Force": np.random.randint(10, 90, 7)
@@ -91,7 +94,7 @@ fig.update_layout(
     plot_bgcolor="rgba(0,0,0,0)",
     font=dict(color="white")
 )
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 dist = pd.DataFrame({
     "Attack": attack_types,
@@ -116,7 +119,7 @@ with col1:
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white")
     )
-    st.plotly_chart(pie, use_container_width=True)
+    st.plotly_chart(pie, width="stretch")
 
 with col2:
     bar = px.bar(
@@ -132,7 +135,7 @@ with col2:
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white")
     )
-    st.plotly_chart(bar, use_container_width=True)
+    st.plotly_chart(bar, width="stretch")
 
 # ---------------------------------------------------------
 # HEATMAP HOURLY VECTOR DENSITY
@@ -150,30 +153,21 @@ heatmap.update_layout(
     plot_bgcolor="rgba(0,0,0,0)",
     font=dict(color="white")
 )
-st.plotly_chart(heatmap, use_container_width=True)
+st.plotly_chart(heatmap, width="stretch")
 
 # ---------------------------------------------------------
 # TOP TARGET SOURCE RECONNAISSANCE
 # ---------------------------------------------------------
 attackers = pd.DataFrame({
     "Source IP": [f"192.168.1.{i}" for i in range(1, 11)],
-    "Country": np.random.choice(
-        ["US", "India", "Germany", "China"],
-        10
-    ),
+    "Country": np.random.choice(["US", "India", "Germany", "China"], 10),
     "Attack Count": np.random.randint(10, 300, 10),
-    "Last Seen": pd.date_range(
-        "2026-01-01",
-        periods=10
-    ),
-    "Most Common Attack": np.random.choice(
-        attack_types,
-        10
-    )
+    "Last Seen": [(datetime(2026, 5, 22) - timedelta(days=x)).strftime("%Y-%m-%d") for x in range(10)],
+    "Most Common Attack": np.random.choice(attack_types, 10)
 })
 
 st.subheader("🎯 Top Attackers Malicious Telemetry")
 st.dataframe(
     attackers,
-    use_container_width=True
+    width="stretch"
 )

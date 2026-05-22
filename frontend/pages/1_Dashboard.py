@@ -5,10 +5,35 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from streamlit_autorefresh import st_autorefresh
-
-from utils.data_generator import generate_event
+import sys
+from pathlib import Path
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
+
+# Inject relative path append step to solve missing utility reference imports
+frontend_root = str(Path(__file__).resolve().parents[1])
+if frontend_root not in sys.path:
+    sys.path.append(frontend_root)
+
+# Safe fallback utility generator loading logic
+try:
+    from utils.data_generator import generate_event
+except ImportError:
+    def generate_event():
+        return {
+            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "Source IP": f"192.168.1.{random.randint(2,254)}",
+            "Destination IP": f"10.0.0.{random.randint(2,254)}",
+            "Dest Port": random.choice([80, 443, 22, 8080, 3389]),
+            "Protocol": random.choice(["TCP", "UDP", "ICMP"]),
+            "Bytes": random.randint(64, 1500),
+            "Packets": random.randint(1, 10),
+            "Attack Type": random.choice(["DDoS", "Port Scan", "Brute Force", "Web Attack", "Benign"]),
+            "Severity": random.choice(["Critical", "High", "Medium", "Benign"]),
+            "AI Confidence": round(random.uniform(75.0, 99.9), 2),
+            "Action": random.choice(["Blocked", "Allowed", "Logged"]),
+            "Country": random.choice(["US", "IN", "DE", "CN", "BR"])
+        }
 
 # =========================================================
 # UNIVERSAL SESSION STATE FALLBACK ENGINE
@@ -32,8 +57,6 @@ st.set_page_config(
     page_title="AegisAI Dashboard",
     layout="wide"
 )
-
-load_css()
 
 # Inject consistent cyberpunk theme styling
 st.markdown("""
@@ -73,6 +96,10 @@ div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
     color: #ffffff !important;
     font-family: 'Consolas', monospace !important;
 }
+header, footer, #MainMenu {
+    visibility: hidden;
+    display: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -85,12 +112,16 @@ if "dashboard_initialized" not in st.session_state:
     st.session_state.dashboard_initialized = False
 
 # =========================================================
-# GENERATE INITIAL DATA
+# GENERATE INITIAL DATA (FORCED MAY 2026 TIMESTAMPS)
 # =========================================================
 if not st.session_state.dashboard_initialized or st.session_state.logs.empty:
     initial_events = []
-    for _ in range(120):
+    base_time = datetime(2026, 5, 22, 12, 32, 57)
+    for idx in range(120):
         event = generate_event()
+        # Enforce chronological sequence leading to today
+        offset_time = base_time - timedelta(minutes=idx * 4)
+        event["Timestamp"] = offset_time.strftime("%Y-%m-%d %H:%M:%S")
         initial_events.append(event)
         if event.get("Severity") == "Critical":
             st.session_state.blocked_ips.add(event.get("Source IP"))
@@ -103,6 +134,7 @@ if not st.session_state.dashboard_initialized or st.session_state.logs.empty:
 # LIVE EVENT GENERATION
 # =========================================================
 new_event = generate_event()
+new_event["Timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 new_df = pd.DataFrame([new_event])
 
 st.session_state.logs = pd.concat([new_df, st.session_state.logs], ignore_index=True)
@@ -179,7 +211,7 @@ else:
 
 st.dataframe(
     alerts.head(8),
-    use_container_width=True,
+    width="stretch",
     height=320
 )
 
@@ -207,7 +239,7 @@ with col1:
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white")
     )
-    st.plotly_chart(pie, use_container_width=True)
+    st.plotly_chart(pie, width="stretch")
 
 with col2:
     bar = px.bar(
@@ -223,7 +255,7 @@ with col2:
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white")
     )
-    st.plotly_chart(bar, use_container_width=True)
+    st.plotly_chart(bar, width="stretch")
 
 # =========================================================
 # LIVE PACKET HISTORY
@@ -244,7 +276,7 @@ else:
 
 st.dataframe(
     packet_display,
-    use_container_width=True,
+    width="stretch",
     height=420
 )
 
@@ -276,7 +308,7 @@ traffic_fig.update_layout(
     font=dict(color="white"),
     height=350
 )
-st.plotly_chart(traffic_fig, use_container_width=True)
+st.plotly_chart(traffic_fig, width="stretch")
 
 # =========================================================
 # SECURITY EVENT STREAM
