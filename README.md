@@ -12,7 +12,7 @@
 
 **AegisAI** is a hybrid, AI-powered Intrusion Detection System that combines machine learning classification with rule-based analysis to detect and visualize network intrusions in real time.
 
-[🚀 Deployed Live UI](https://aegisai-ids.onrender.com) · [📖 Interactive API Docs](https://aegisai-api.onrender.com/docs) · [📊 System Documentation](docs/architecture.md)
+[🚀 Deployed Live UI](https://aegisai-ids.onrender.com) ·  · [📊 System Documentation](docs/architecture.md)
 
 ---
 
